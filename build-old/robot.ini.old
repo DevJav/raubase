@@ -1,0 +1,135 @@
+[service]
+logpath = log/
+
+[id]
+type = robobot
+idx = 2
+; robot 'name' is read-only, change 'idx' [1..150] to set name = 
+name = Sofia
+save = true
+
+[teensy]
+device = /dev/ttyACM0
+log = true
+confirm_timeout = 0.04
+
+[encoder]
+rate_ms = 10
+log = true
+print = false
+
+[state]
+log = true
+
+[pose]
+gear = 18.0
+wheeldiameter = 0.09
+enctickperrev = 64
+wheelbase = 0.26
+log = true
+print = false
+
+[gpio]
+pins_out = 12=0 16=1 21=1
+stop_on_stop = true
+blink_period_ms = 600
+log = true
+print = false
+
+[imu]
+rate_ms = 12
+gyro_offset = 0 0 0
+log = true
+print_gyro = false
+print_acc = false
+
+[edge]
+rate_ms = 15
+highpower = true
+lograw = true
+printraw = false
+calibwhite = 1000 1000 1000 1000 1000 1000 1000 1000
+calibblack = 0 0 0 0 0 0 0 0
+whitethresholdpct = 70
+crossinglevelpct = 70
+sensorwidth = 0.09
+log = true
+print = false
+kp = 10.0
+lead = 0.0 1.0
+taui = 0.0
+logcedge = true
+logctrl = false
+printctrl = false
+maxturnrate = 5.0
+
+[mixer]
+log = true
+print = 
+
+[turnrate]
+enabled = 
+kp = 
+lead = 
+taui = 
+maxturnrate = 
+print = 
+log = 
+
+[motor]
+kp = 1.0
+lead = 0.0 1.0
+taui = 0.0
+maxmotv = 10.0
+log = true
+print_m1 = 
+print_m2 = 
+
+[pyvision]
+host = localhost
+port = 25001
+log = true
+print = false
+enabled = false
+
+[servo]
+rate_ms = 50
+log = true
+print = true
+printctrl = false
+
+[dist]
+rate_ms = 45
+ir13cm = 70000 70000
+ir50cm = 20000 20000
+uscalib = 0.00126953125
+log = true
+print = false
+sensor1 = sharp
+sensor2 = sharp
+
+[joy_logitech]
+log = true
+print = false
+device = /dev/input/js0
+limit = 1.5 1.5 0.1
+button_fast = 5
+axis_vel = 4
+axis_turn = 3
+slow_factor = 0.3
+axis_servo = 1
+servo = 1
+
+[plan1]
+run = 
+
+[plan20]
+run = 
+
+[plan99]
+run = 
+
+[ini]
+; set 'saveconfig' to 'false' to avoid autosave = 
+saveconfig = true
+version = 398 2023-09-27 13:43:08

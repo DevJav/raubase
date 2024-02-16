@@ -1,0 +1,30 @@
+# Ignore log files
+*.log
+log**.txt
+
+# Ignore build artifacts
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+CMakeFiles/
+CMakeCache.txt
+
+# Ignore IDE-specific files
+.vs/
+.idea/
+*.suo
+*.user
+
+# Ignore dependencies
+vendor/
+node_modules/
+package-lock.json
+
+# Ignore temporary files
+*~
+.*.swp
+
+# Ignore user-specific files
+.vscode/
