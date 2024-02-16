@@ -89,7 +89,8 @@ void BPlan41::run()
   //
 
   float base_velocity = 0.2;
-  float P = 0.5;
+  float P = 100.0;
+  int last_state = 0;
 
   while (not finished and not lost and not service.stop)
   {
@@ -104,23 +105,26 @@ void BPlan41::run()
         std::cout << "Right edge: " << dist_right_edge << std::endl;
         std::cout << "Left edge: " << dist_left_edge << std::endl;
 
-        if (dist_right_edge < 0.0 and dist_left_edge > 0.0)
+        if (dist_right_edge < 0.0 and dist_left_edge > 0.0 && last_state != 0)
         {
           std::cout << "Both edges are found" << std::endl;
           mixer.setRightVelocity(base_velocity);
           mixer.setLeftVelocity(base_velocity);
+          last_state = 0;
         }
-        else if (dist_right_edge > 0.0)
+        else if (dist_right_edge > 0.0 && last_state != 1)
         {
           std::cout << "Correcting right edge" << std::endl;
           mixer.setRightVelocity(base_velocity + (P * abs(dist_right_edge)));
           mixer.setLeftVelocity(base_velocity - (P * abs(dist_right_edge)));
+          last_state = 1;
         }
-        else if (dist_left_edge < 0.0)
+        else if (dist_left_edge < 0.0 && last_state != 2)
         {
           std::cout << "Correcting left edge" << std::endl;
           mixer.setRightVelocity(base_velocity - (P * abs(dist_left_edge)));
           mixer.setLeftVelocity(base_velocity + (P * abs(dist_left_edge)));
+          last_state = 2;
         }
       }
       break;
