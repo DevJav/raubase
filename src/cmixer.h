@@ -1,25 +1,24 @@
-/*  
- * 
+/*
+ *
  * Copyright © 2023 DTU, Christian Andersen jcan@dtu.dk
- * 
+ *
  * The MIT License (MIT)  https://mit-license.org/
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the “Software”), to deal in the Software without restriction, 
- * including without limitation the rights to use, copy, modify, merge, publish, distribute, 
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software 
+ * and associated documentation files (the “Software”), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
  * is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies 
+ *
+ * The above copyright notice and this permission notice shall be included in all copies
  * or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE. */
-
 
 #ifndef MMIXER_H
 #define MMIXER_H
@@ -47,11 +46,11 @@ public:
    * Velocity control in automnomous mode
    * \param linearVelocity in meter per second
    * */
-  void setVelocity(float linearVelocity);// m/s
+  void setVelocity(float linearVelocity); // m/s
   /**
    * Set heading mode to turnrate control.
    * \param turnVelocity is the desired turnrate */
-  void setTurnrate(float turnVelocity);  // rad/sec
+  void setTurnrate(float turnVelocity); // rad/sec
   /**
    * Set turnrate, when turnrate is controlled by a
    * specifig controller, e.g. edge follow controller .
@@ -76,14 +75,17 @@ public:
 
   /**
    * Get wheel velocity */
-  inline float * getWheelVelocityArray()  { return wheelVelRef; }
+  inline float *getWheelVelocityArray() { return wheelVelRef; }
   /**
    * are we in autonomous mode, i.e. not in manual override */
-  inline bool autonomous()  {  return not manualOverride;  }
+  inline bool autonomous() { return not manualOverride; }
 
   /**
    * Translate fro linear velocity and turnrate to wheel velocity */
   void updateWheelVelocity();
+
+  void setRightVelocity(float rightVelocity);
+  void setLeftVelocity(float leftVelocity);
 
 public:
   /// Mixer update cnt
@@ -93,9 +95,14 @@ public:
   // this desired heading (compared to pose.h)
   float desiredHeading = 0;
   // turnrate mode for automatic drive
-//   bool turnrateMode = true;
+  //   bool turnrateMode = true;
   // heading mode
-  enum {HM_TURNRATE, HM_ABS_HEADING, HM_EDGE} headingMode = HM_TURNRATE;
+  enum
+  {
+    HM_TURNRATE,
+    HM_ABS_HEADING,
+    HM_EDGE
+  } headingMode = HM_TURNRATE;
 
 private:
   /// private stuff
@@ -105,10 +112,10 @@ private:
   /** log data for this module */
   void toLog();
   //
-  FILE * logfile = nullptr;
+  FILE *logfile = nullptr;
   bool toConsole = false;
   /// Turnrate in radians per second
-//   float turnrateRef = 0; // desired
+  //   float turnrateRef = 0; // desired
   /// Linear velocity (m/s)
   float linVel = 0;
   // manual override mode
@@ -120,7 +127,7 @@ private:
   float autoTurnrateRef = 0;
   //
   float wheelbase;
-  float velDif; // desired velocity difference
+  float velDif;     // desired velocity difference
   float turnRadius; // desired turn radius
   // velocity ref for left and right wheel
   float wheelVelRef[2] = {0};

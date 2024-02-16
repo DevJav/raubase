@@ -1,25 +1,25 @@
-/*  
- * 
- * Copyright © 2022 DTU, 
+/*
+ *
+ * Copyright © 2022 DTU,
  * Author:
  * Christian Andersen jcan@dtu.dk
- * 
+ *
  * The MIT License (MIT)  https://mit-license.org/
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the “Software”), to deal in the Software without restriction, 
- * including without limitation the rights to use, copy, modify, merge, publish, distribute, 
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software 
+ * and associated documentation files (the “Software”), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
  * is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies 
+ *
+ * The above copyright notice and this permission notice shall be included in all copies
  * or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE. */
 
 #include <string>
@@ -48,7 +48,7 @@ void CMixer::setup()
   // get values from ini-file
   //
   wheelbase = strtof(ini["pose"]["wheelbase"].c_str(), nullptr);
-//   turnrateControl = ini["heading"]["enabled"] == "true";
+  //   turnrateControl = ini["heading"]["enabled"] == "true";
   // wheelbase must not be zero or negative
   if (wheelbase < 0.005)
     wheelbase = 0.22;
@@ -95,6 +95,16 @@ void CMixer::setVelocity(float linearVelocity)
   updateVelocities();
 }
 
+void CMixer::setRightVelocity(float rightVelocity)
+{
+  wheelVelRef[1] = rightVelocity;
+}
+
+void CMixer::setLeftVelocity(float leftVelocity)
+{
+  wheelVelRef[0] = leftVelocity;
+}
+
 void CMixer::setTurnrate(float turnVelocity)
 {
   autoTurnrateRef = turnVelocity;
@@ -126,10 +136,9 @@ void CMixer::setEdgeMode(bool leftEdge, float offset)
   cedge.followOffset = offset;
 }
 
-
 void CMixer::updateVelocities()
 { // trigger new calculation
-//   printf("# CMixer:: update\n");
+  //   printf("# CMixer:: update\n");
   if (manualOverride)
   {
     linVel = manualLinVel;
@@ -155,7 +164,7 @@ void CMixer::updateWheelVelocity()
   // adjust each wheel with half difference
   // positive turn-rate (CCV) makes right wheel
   // turn faster forward
-  v1 = linVel + velDif/2;
+  v1 = linVel + velDif / 2;
   v0 = v1 - velDif;
   // turn radius (for logging only)
   //
@@ -185,7 +194,7 @@ void CMixer::toLog()
   if (logfile != nullptr)
   { // add to log after update
     fprintf(logfile, "%lu.%04ld %d %.3f %d %.4f %.4f %.4f %.3f %.3f %.2f\n",
-            updateTime.getSec(), updateTime.getMicrosec()/100,
+            updateTime.getSec(), updateTime.getMicrosec() / 100,
             manualOverride, linVel, headingMode, desiredHeading,
             heading.getTurnrateRef(), heading.getTurnrate(),
             wheelVelRef[0], wheelVelRef[1], turnRadius);
@@ -193,7 +202,7 @@ void CMixer::toLog()
   if (toConsole)
   {
     printf("%lu.%04ld %d %.3f %d %.4f %.4f %.4f %.3f %.3f %.2f\n",
-           updateTime.getSec(), updateTime.getMicrosec()/100,
+           updateTime.getSec(), updateTime.getMicrosec() / 100,
            manualOverride, linVel, headingMode, desiredHeading,
            heading.getTurnrateRef(), heading.getTurnrate(),
            wheelVelRef[0], wheelVelRef[1], turnRadius);
