@@ -123,54 +123,29 @@ void BPlan101::run()
     }
     case 11:
     {
+      // find green dot on image and move to place it in the center
+      // get image
       cv::Mat image = cam.getFrame();
-      // Convert to HSV color space (adjust values as needed)
-      cv::Mat hsv_image;
-      cv::cvtColor(image, hsv_image, cv::COLOR_BGR2HSV);
-
-      cv::Scalar lower_green(0, 100, 0);
-      cv::Scalar upper_green(50, 255, 50);
-
-      // Create mask for green pixels
-      cv::Mat mask;
-      cv::inRange(hsv_image, lower_green, upper_green, mask);
-
-      // Find contours of green object
-      std::vector<std::vector<cv::Point>> contours;
-      cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-      // Calculate image center
-      cv::Point image_center(image.cols / 2, image.rows / 2);
-
-      // Iterate through green object contours
-      double biggest_area = 0;
-      std::vector<cv::Point> biggest_contour;
-      for (const auto &contour : contours)
+      // find green dot
+      cv::Point2f p = cam.findGreenDot(image);
+      // move to place green dot in center
+      if (p.x > 0 and p.y > 0)
       {
-        double area = cv::contourArea(contour);
-        if (area > biggest_area)
-        {
-          biggest_area = area;
-          biggest_contour = contour;
-        }
+        // move to place green dot in center
+        int dx = p.x - image.cols / 2;
+        int dy = p.y - image.rows / 2;
+
+        std::out << "dx = " << dx << " dy = " << dy << std::endl;
+
+        // move to place green dot in center
+        mixer.setVelocity(0.1);
+        mixer.setTurnrate(0.1 * dx / image.cols);
       }
-
-      // Find moments (weighted mean of pixels)
-      cv::Moments moments = cv::moments(biggest_contour);
-
-      // Calculate object centroid (center of mass)
-      cv::Point object_centroid(moments.m10 / moments.m00, moments.m01 / moments.m00);
-
-      // Calculate distance from image center to object centroid
-      int distance_x = std::abs(object_centroid.x - image_center.x);
-      int distance_y = std::abs(object_centroid.y - image_center.y);
-
-      // Output distance information
-      std::cout << "Distance from image center to object: "
-                << distance_x << " x pixels" << std::endl;
-      std::cout << "Object area: " << biggest_area << std::endl;
-
-      break;
+      else
+      {
+        mixer.setVelocity(0);
+        mixer.setTurnrate(0);
+      }
     }
     default:
       toLog("Unknown state");
