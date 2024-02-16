@@ -99,12 +99,12 @@ void BPlan100::run()
         toLog("Reset pose");
         pose.resetPose();
 
-        toLog("forward at 0.3m/s");
-        mixer.setVelocity(0.3);
+        toLog("forward at 0.5m/s");
+        mixer.setVelocity(0.5);
         state = 11;
         break;
       case 11: // wait for distance
-        if (pose.dist >= 0.3)
+        if (pose.dist >= 0.5)
         { // done, and then
           toLog("now turn at 0.5 rad/s and 0 m/s");
           // reset turned angle
@@ -117,11 +117,11 @@ void BPlan100::run()
           lost = true;
         break;
       case 21:
-        if (pose.turned >= M_PI)
+        if (pose.turned >= (M_PI / 2))
         {
-          mixer.setDesiredHeading(M_PI);
+          mixer.setDesiredHeading((M_PI / 2));
           toLog("now go back");
-          mixer.setVelocity(0.3);
+          mixer.setVelocity(0.5);
           // reset driven distance
           pose.dist = 0;
           state = 31;
@@ -130,10 +130,10 @@ void BPlan100::run()
           lost = true;
         break;
       case 31: // wait for distance
-        if (pose.dist >= 0.3)
+        if (pose.dist >= 0.5)
         { // the end
           mixer.setVelocity(0.0);
-          finished = true;
+          state = 10;
         }
         else if (t.getTimePassed() > 10)
           lost = true;
