@@ -137,6 +137,8 @@ void BPlan50::run()
   int state = APROXIMATION;
 
   float init_distance = 0.0;
+  float minimum_distance = 0.3;
+  float free_distance = 0.6;
 
   pose.resetPose();
 
@@ -147,43 +149,33 @@ void BPlan50::run()
     case APROXIMATION:
       if (pose.dist > 0.5)
       {
-        init_distance = dist.dist[0];
+        std::cout << "[APROXIMATION] Arrived at start position" << std::endl;
         mixer.setManualControl(true, 0.0, 0.0);
-
-        if (init_distance < 0.3)
-        {
-          std::cout << "Changing to WAIT_FOR_FREE" << std::endl;
-          std::cout << init_distance << std::endl;
-          state = WAIT_FOR_FREE;
-        }
-        else
-        {
-          std::cout << "Changing to WAIT_FOR_AXE" << std::endl;
-          std::cout << init_distance << std::endl;
-          state = WAIT_FOR_AXE;
-        }
+        init_distance = dist.dist[0];
+        std::cout << "[APROXIMATION] Measured distance: " << init_distance << std::endl;
+        std::cout << "[APROXIMATION] Changing to WAIT_FOR_AXE" << std::endl;
+        state = WAIT_FOR_AXE;
         break;
       }
       follow_line();
       break;
 
     case WAIT_FOR_AXE:
-      if (dist.dist[0] < 0.3)
+      if (dist.dist[0] < minimum_distance)
       {
-        std::cout << "Changing to WAIT_FOR_FREE" << std::endl;
+        std::cout << "[WAIT_FOR_AXE] Measured distance: " << dist.dist[0] << std::endl;
+        std::cout << "[WAIT_FOR_AXE] Changing to WAIT_FOR_FREE" << std::endl;
         state = WAIT_FOR_FREE;
-        init_distance = dist.dist[0];
-        std::cout << init_distance << std::endl;
       }
       break;
 
     case WAIT_FOR_FREE:
-      if (dist.dist[0] > 0.8)
+      if (dist.dist[0] > free_distance)
       {
-        std::cout << "Changing to CROSS" << std::endl;
+        std::cout << "[WAIT_FOR_FREE] Changing to CROSS" << std::endl;
         state = CROSS;
         pose.resetPose();
-        mixer.setManualControl(true, 0.4, 0.0);
+        mixer.setManualControl(true, 0.5, 0.0);
       }
       std::cout << dist.dist[0] << std::endl;
 
@@ -192,12 +184,13 @@ void BPlan50::run()
     case CROSS:
       if (pose.dist > 1.0)
       {
-        std::cout << "Changing to FOLLOW_LINE" << std::endl;
+        std::cout << "[CROSS] Changing to FOLLOW_LINE" << std::endl;
         state = FOLLOW_LINE;
       }
       break;
 
     case FOLLOW_LINE:
+      std::cout << "FINISH!" << std::endl;
       return;
       break;
 
