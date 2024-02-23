@@ -38,28 +38,28 @@
 #include "cmixer.h"
 #include "sdist.h"
 
-#include "bplan41.h"
+#include "bplan40.h"
 
 // create class object
-BPlan41 plan41;
+BPlan40 plan40;
 
 
-void BPlan41::setup()
+void BPlan40::setup()
 { // ensure there is default values in ini-file
-  if (not ini["plan41"].has("log"))
+  if (not ini["plan40"].has("log"))
   { // no data yet, so generate some default values
-    ini["plan41"]["log"] = "true";
-    ini["plan41"]["run"] = "false";
-    ini["plan41"]["print"] = "true";
+    ini["plan40"]["log"] = "true";
+    ini["plan40"]["run"] = "false";
+    ini["plan40"]["print"] = "true";
   }
   // get values from ini-file
-  toConsole = ini["plan41"]["print"] == "true";
+  toConsole = ini["plan40"]["print"] == "true";
   //
-  if (ini["plan41"]["log"] == "true")
+  if (ini["plan40"]["log"] == "true")
   { // open logfile
-    std::string fn = service.logPath + "log_plan41.txt";
+    std::string fn = service.logPath + "log_plan40.txt";
     logfile = fopen(fn.c_str(), "w");
-    fprintf(logfile, "%% Mission plan41 logfile\n");
+    fprintf(logfile, "%% Mission plan40 logfile\n");
     fprintf(logfile, "%% 1 \tTime (sec)\n");
     fprintf(logfile, "%% 2 \tMission state\n");
     fprintf(logfile, "%% 3 \t%% Mission status (mostly for debug)\n");
@@ -67,21 +67,21 @@ void BPlan41::setup()
   setupDone = true;
 }
 
-BPlan41::~BPlan41()
+BPlan40::~BPlan40()
 {
   terminate();
 }
 
-void BPlan41::run()
+void BPlan40::run()
 {
   if (not setupDone)
     setup();
-  if (ini["plan41"]["run"] == "false")
+  if (ini["plan40"]["run"] == "false")
     return;
   UTime t("now");
   bool finished = false;
   bool lost = false;
-  state = 1;
+  state = 5;
   oldstate = state;
   const int MSL = 100;
   char s[MSL];
@@ -90,7 +90,7 @@ void BPlan41::run()
   int last_state = 4;
   int lost_counter = 0;
   //
-  toLog("Plan41 started");
+  toLog("Plan40 started");
   //
   while (not finished and not lost and not service.stop)
   {
@@ -104,10 +104,8 @@ void BPlan41::run()
 
           // std::cout << "Right edge: " << dist_right_edge << std::endl;
           // std::cout << "Left edge: " << dist_left_edge << std::endl;
-          if (medge.width > 0.04){
-            state = 20;
-          }
-          else if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
+
+          if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
           {
             std::cout << "Both edges are found" << std::endl;
             mixer.setManualControl(true, base_velocity, 0.0);
@@ -142,10 +140,10 @@ void BPlan41::run()
         }
         break;
       
+      float base_velocity = 0.25;
+      float turn_velocity = 0.6;
       case 20: // forward looking for line, then turn
-
-        mixer.setManualControl(true, 0.0, 0.0);
-        std::cout << "Intersection!" << medge.width << std::endl;
+        if (medge.width > 0.03)
         {
           toLog("found intersection, turn right");
           // set to edge control, left side and 0 offset
@@ -153,9 +151,14 @@ void BPlan41::run()
           state = 30;
           pose.dist = 0.0;
         }
+        else if (t.getTimePassed() > 10 or pose.dist > 0.6)
+        { // line should be found within 10 seconds, else lost
+          toLog("failed to find line after 10 sec / 30cm");
+          lost = true;
+        }
         break;
       case 30: // Continue turn until right edge is almost reached, then follow right edge
-        if (pose.dist > 0.1 && medge.edgeValid )
+        if (pose.dist > 0.1 && medge.edgeValid and medge.rightEdge > -0.04 and pose.turned > 0.3)
         {
           toLog("Line detected, that is OK to follow");
           mixer.setEdgeMode(false /* right */, -0.03 /* offset */);
@@ -226,23 +229,23 @@ void BPlan41::run()
   }
   if (lost)
   { // there may be better options, but for now - stop
-    toLog("Plan41 got lost - stopping");
+    toLog("Plan40 got lost - stopping");
     mixer.setVelocity(0);
     mixer.setTurnrate(0);
   }
   else
-    toLog("Plan41 finished");
+    toLog("Plan40 finished");
 }
 
 
-void BPlan41::terminate()
+void BPlan40::terminate()
 { //
   if (logfile != nullptr)
     fclose(logfile);
   logfile = nullptr;
 }
 
-void BPlan41::toLog(const char* message)
+void BPlan40::toLog(const char* message)
 {
   UTime t("now");
   if (logfile != nullptr)
