@@ -89,6 +89,8 @@ void BPlan41::run()
   float turn_velocity = 0.6;
   int last_state = 4;
   int lost_counter = 0;
+  bool right = true;
+  int cont_int = 0;
   //
   toLog("Plan41 started");
   //
@@ -104,8 +106,15 @@ void BPlan41::run()
 
           // std::cout << "Right edge: " << dist_right_edge << std::endl;
           // std::cout << "Left edge: " << dist_left_edge << std::endl;
-          if (medge.width > 0.04){
+          if (medge.width > 0.05){
+            cont_int++;
+          }
+          else {
+            cont_int = 0;
+          }
+          if (cont_int > 5){
             state = 20;
+            break;
           }
           else if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
           {
@@ -146,10 +155,18 @@ void BPlan41::run()
 
         mixer.setManualControl(true, 0.0, 0.0);
         std::cout << "Intersection!" << medge.width << std::endl;
-        {
+        right = !right;
+        if (right){
           toLog("found intersection, turn right");
           // set to edge control, left side and 0 offset
           mixer.setManualControl(true, base_velocity, -turn_velocity);
+          state = 30;
+          pose.dist = 0.0;
+        }
+        else {
+          toLog("found intersection, turn right");
+          // set to edge control, left side and 0 offset
+          mixer.setManualControl(true, base_velocity, turn_velocity);
           state = 30;
           pose.dist = 0.0;
         }
@@ -158,7 +175,12 @@ void BPlan41::run()
         if (pose.dist > 0.1 && medge.edgeValid )
         {
           toLog("Line detected, that is OK to follow");
-          mixer.setEdgeMode(false /* right */, -0.03 /* offset */);
+          if (right){
+            mixer.setEdgeMode(false /* right */, -0.03 /* offset */);
+          }
+          else {
+            mixer.setEdgeMode(true /* left */, 0.03 /* offset */);
+          }
           mixer.setVelocity(base_velocity);
           state = 1;
           pose.dist = 0;
