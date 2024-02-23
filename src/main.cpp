@@ -35,11 +35,11 @@
 #include "bplan21.h"
 #include "bplan40.h"
 #include "bplan41.h"
+#include "bplan50.h"
 #include "bplan100.h"
 #include "bplan101.h"
 
-
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 { // prepare all modules and start data flow
   // but also handle command-line options
   service.setup(argc, argv);
@@ -53,6 +53,7 @@ int main (int argc, char **argv)
     plan21.run();
     plan40.run();
     plan41.run();
+    plan50.run();
     plan100.run();
     plan101.run();
     //
@@ -66,4 +67,3 @@ int main (int argc, char **argv)
   service.terminate();
   return service.theEnd;
 }
-
