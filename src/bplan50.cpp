@@ -81,6 +81,48 @@ BPlan50::~BPlan50()
   terminate();
 }
 
+void BPlan50::follow_line()
+{
+  if (medge.edgeValid)
+  {
+    float dist_right_edge = medge.rightEdge;
+    float dist_left_edge = medge.leftEdge;
+
+    if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
+    {
+      std::cout << "Both edges are found" << std::endl;
+      mixer.setManualControl(true, base_velocity, 0.0);
+      last_state = 0;
+    }
+    else if ((dist_right_edge > 0.0) && last_state != 1)
+    {
+      std::cout << "Correcting right edge" << std::endl;
+      mixer.setManualControl(true, base_velocity, turn_velocity);
+      last_state = 1;
+    }
+    else if ((dist_left_edge < 0.0) && last_state != 2)
+    {
+      std::cout << "Correcting left edge" << std::endl;
+      mixer.setManualControl(true, base_velocity, -turn_velocity);
+      last_state = 2;
+    }
+  }
+  else
+  {
+    if (last_state != 4 && lost_counter > 10)
+    {
+      std::cout << "Lost" << std::endl;
+      mixer.setManualControl(true, 0.0, 0.0);
+      last_state = 4;
+      lost_counter = 0;
+    }
+    else
+    {
+      lost_counter++;
+    }
+  }
+}
+
 void BPlan50::run()
 {
   if (not setupDone)
@@ -88,19 +130,11 @@ void BPlan50::run()
   if (ini["Plan50"]["run"] == "false")
     return;
   UTime t("now");
-  const int MSL = 100;
-  char s[MSL];
   //
   toLog("Plan50 started");
   //
 
-  float base_velocity = 0.25;
-  float turn_velocity = 0.6;
-  int last_state = 4;
-  int lost_counter = 0;
-
-  int state = 0;
-  int oldstate = -1;
+  int state = APROXIMATION;
 
   float init_distance = 0.0;
 
@@ -111,87 +145,60 @@ void BPlan50::run()
     switch (state)
     {
     case APROXIMATION:
-      if (pose.dist > 0.15)
+      if (pose.dist > 0.5)
       {
-        state = WAIT_FOR_AXE;
         init_distance = dist.dist[0];
+        mixer.setManualControl(true, 0.0, 0.0);
+
         if (init_distance < 0.3)
         {
+          std::cout << "Changing to WAIT_FOR_FREE" << std::endl;
+          std::cout << init_distance << std::endl;
           state = WAIT_FOR_FREE;
         }
         else
         {
+          std::cout << "Changing to WAIT_FOR_AXE" << std::endl;
+          std::cout << init_distance << std::endl;
           state = WAIT_FOR_AXE;
         }
         break;
       }
-      if (medge.edgeValid)
-      {
-        float dist_right_edge = medge.rightEdge;
-        float dist_left_edge = medge.leftEdge;
-
-        if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
-        {
-          std::cout << "Both edges are found" << std::endl;
-          mixer.setManualControl(true, base_velocity, 0.0);
-          last_state = 0;
-        }
-        else if ((dist_right_edge > 0.0) && last_state != 1)
-        {
-          std::cout << "Correcting right edge" << std::endl;
-          mixer.setManualControl(true, base_velocity, turn_velocity);
-          last_state = 1;
-        }
-        else if ((dist_left_edge < 0.0) && last_state != 2)
-        {
-          std::cout << "Correcting left edge" << std::endl;
-          mixer.setManualControl(true, base_velocity, -turn_velocity);
-          last_state = 2;
-        }
-      }
-      else
-      {
-        if (last_state != 4 && lost_counter > 10)
-        {
-          std::cout << "Lost" << std::endl;
-          mixer.setManualControl(true, 0.0, 0.0);
-          last_state = 4;
-          lost_counter = 0;
-        }
-        else
-        {
-          lost_counter++;
-        }
-      }
-
+      follow_line();
       break;
 
     case WAIT_FOR_AXE:
-      if (abs(init_distance - dist.dist[0]) > 0.3)
+      if (dist.dist[0] < 0.3)
       {
+        std::cout << "Changing to WAIT_FOR_FREE" << std::endl;
         state = WAIT_FOR_FREE;
         init_distance = dist.dist[0];
+        std::cout << init_distance << std::endl;
       }
       break;
 
     case WAIT_FOR_FREE:
-      if (abs(init_distance - dist.dist[0]) > 0.3)
+      if (dist.dist[0] > 0.8)
       {
+        std::cout << "Changing to CROSS" << std::endl;
         state = CROSS;
         pose.resetPose();
-        mixer.setManualControl(true, 0.6, 0.0);
+        mixer.setManualControl(true, 0.4, 0.0);
       }
+      std::cout << dist.dist[0] << std::endl;
+
       break;
 
     case CROSS:
-      if (pose.dist > 0.3)
+      if (pose.dist > 1.0)
       {
+        std::cout << "Changing to FOLLOW_LINE" << std::endl;
         state = FOLLOW_LINE;
       }
       break;
 
     case FOLLOW_LINE:
-      return 0;
+      return;
       break;
 
     default:

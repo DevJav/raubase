@@ -43,6 +43,13 @@ public:
    * terminate */
   void terminate();
 
+  void follow_line();
+
+  int last_state = 4;
+  float base_velocity = 0.25;
+  float turn_velocity = 0.6;
+  int lost_counter = 0;
+
 private:
   /**
    * Write a timestamped message to log */
