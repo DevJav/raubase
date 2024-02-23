@@ -35,6 +35,7 @@
 #include "bplan21.h"
 #include "bplan40.h"
 #include "bplan41.h"
+#include "bplan42.h"
 #include "bplan100.h"
 #include "bplan101.h"
 
@@ -53,6 +54,7 @@ int main (int argc, char **argv)
     plan21.run();
     plan40.run();
     plan41.run();
+    plan42.run();
     plan100.run();
     plan101.run();
     //
