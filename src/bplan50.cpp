@@ -90,19 +90,16 @@ void BPlan50::follow_line()
 
     if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
     {
-      std::cout << "Both edges are found" << std::endl;
       mixer.setManualControl(true, base_velocity, 0.0);
       last_state = 0;
     }
     else if ((dist_right_edge > 0.0) && last_state != 1)
     {
-      std::cout << "Correcting right edge" << std::endl;
       mixer.setManualControl(true, base_velocity, turn_velocity);
       last_state = 1;
     }
     else if ((dist_left_edge < 0.0) && last_state != 2)
     {
-      std::cout << "Correcting left edge" << std::endl;
       mixer.setManualControl(true, base_velocity, -turn_velocity);
       last_state = 2;
     }
@@ -177,7 +174,6 @@ void BPlan50::run()
         pose.resetPose();
         mixer.setManualControl(true, 0.5, 0.0);
       }
-      std::cout << dist.dist[0] << std::endl;
 
       break;
 
