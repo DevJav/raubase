@@ -90,7 +90,8 @@ void BPlan41::run()
   int last_state = 4;
   int lost_counter = 0;
   bool right = true;
-  int cont_int = 0;
+  int cont_int = 0;   // Contador para saber si estamos en una interseccion
+  int cont_int2 = 0; // Contador para numero de intersecciones encontradas
   //
   toLog("Plan41 started");
   //
@@ -113,7 +114,19 @@ void BPlan41::run()
             cont_int = 0;
           }
           if (cont_int > 5){
-            state = 20;
+            cont_int2++;
+            if (cont_int2 == 1){
+              state = 21;
+              cont_int = 0;
+            }
+            else if (cont_int2 == 2){
+              state = 22;
+              cont_int = 0;
+            }
+            else if (cont_int2 == 3){
+              state = 23;
+              cont_int = 0;
+            }
             break;
           }
           else if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
@@ -155,7 +168,6 @@ void BPlan41::run()
 
         mixer.setManualControl(true, 0.0, 0.0);
         std::cout << "Intersection!" << medge.width << std::endl;
-        right = !right;
         if (right){
           toLog("found intersection, turn right");
           // set to edge control, left side and 0 offset
@@ -170,7 +182,41 @@ void BPlan41::run()
           state = 30;
           pose.dist = 0.0;
         }
+        right = !right;
         break;
+
+      
+      case 21: // First intersection, take right turn
+
+        mixer.setManualControl(true, 0.0, 0.0);
+        std::cout << "Intersection!" << medge.width << std::endl;
+        toLog("found intersection, turn right");
+        // set to edge control, left side and 0 offset
+        mixer.setManualControl(true, base_velocity, -turn_velocity);
+        state = 30;
+        pose.dist = 0.0;
+        break;
+      
+      case 22: // Second intersection (seesaw), keep straight
+
+        state = 30;
+
+        std::cout << "Intersection!" << medge.width << std::endl;
+        toLog("found intersection, keep straight");
+        break;
+
+      
+      case 23: // Third intersection, turn left to the stairs
+
+        mixer.setManualControl(true, 0.0, 0.0);
+        std::cout << "Intersection!" << medge.width << std::endl;
+        toLog("found intersection, turn left");
+        // set to edge control, left side and 0 offset
+        mixer.setManualControl(true, base_velocity, turn_velocity);
+        state = 30;
+        pose.dist = 0.0;
+        break;
+        
       case 30: // Continue turn until right edge is almost reached, then follow right edge
       if (right){
         mixer.setEdgeMode(false /* right */, -0.03 /* offset */);
