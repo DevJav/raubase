@@ -78,19 +78,15 @@ void BPlan41::run()
   if (ini["Plan41"]["run"] == "false")
     return;
   UTime t("now");
-  const int MSL = 100;
-  char s[MSL];
   //
   toLog("Plan41 started");
   //
 
-  // float base_velocity = 0.25;
-  // float turn_velocity = 0.6;
-  // int last_state = 4;
-  // int lost_counter = 0;
+  line_follower.setBaseVelocity(strtof(ini["velocity"]["base_velocity"].c_str(), nullptr));
+  line_follower.setTurnVelocity(strtof(ini["velocity"]["turn_velocity"].c_str(), nullptr));
 
-  line_follower.setBaseVelocity(0.5);
-  line_follower.setTurnVelocity(1.5);
+  float edge_threshold = strtof(ini["velocity"]["edge_threshold"].c_str(), nullptr);
+  line_follower.setEdgeThreshold(edge_threshold);
 
   while (not service.stop)
   {

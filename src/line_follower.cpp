@@ -42,6 +42,12 @@ void LineFollower::setTurnVelocity(float turn_velocity)
     __turn_velocity = turn_velocity;
 }
 
+void LineFollower::setEdgeThreshold(float edge_threshold)
+{
+    std::cout << "Setting edge threshold to " << edge_threshold << std::endl;
+    __edge_threshold = edge_threshold;
+}
+
 bool LineFollower::followLine()
 {
     if (medge.edgeValid)
@@ -59,13 +65,13 @@ bool LineFollower::followLine()
         else
         {
             __deviation_counter++;
-            if ((dist_right_edge > 0.0) && __last_state != State::CORRECTING_RIGHT_EDGE && __deviation_counter > 300)
+            if ((dist_right_edge > __edge_threshold) && __last_state != State::CORRECTING_RIGHT_EDGE)
             {
                 std::cout << "Correcting right edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, __turn_velocity);
                 __last_state = State::CORRECTING_RIGHT_EDGE;
             }
-            else if ((dist_left_edge < 0.0) && __last_state != State::CORRECTING_LEFT_EDGE && __deviation_counter > 300)
+            else if ((dist_left_edge < -__edge_threshold) && __last_state != State::CORRECTING_LEFT_EDGE)
             {
                 std::cout << "Correcting left edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, -__turn_velocity);
