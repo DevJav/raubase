@@ -1,11 +1,24 @@
 
-#include <line_follower.h>
 #include <iostream>
+#include <thread>
+#include "line_follower.h"
 #include "medge.h"
 #include "cmixer.h"
+#include "uservice.h"
 
 // create class object
 LineFollower line_follower;
+
+void LineFollower::setup()
+{
+    th1 = new std::thread(runObj, this);
+}
+
+void LineFollower::terminate()
+{ // wait for thread to finish
+    if (th1 != nullptr)
+        th1->join();
+}
 
 // enum for the last state
 enum State
@@ -70,4 +83,13 @@ bool LineFollower::followLine()
         }
     }
     return true;
+}
+
+void LineFollower::run()
+{
+    int loop = 0;
+    while (not service.stop)
+    {
+        usleep(2000);
+    }
 }

@@ -84,10 +84,10 @@ void BPlan41::run()
   toLog("Plan41 started");
   //
 
-  float base_velocity = 0.25;
-  float turn_velocity = 0.6;
-  int last_state = 4;
-  int lost_counter = 0;
+  // float base_velocity = 0.25;
+  // float turn_velocity = 0.6;
+  // int last_state = 4;
+  // int lost_counter = 0;
 
   while (not service.stop)
   {
