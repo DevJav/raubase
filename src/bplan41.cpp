@@ -92,21 +92,26 @@ void BPlan41::run()
   bool right = true;
   int cont_int = 0;   // Contador para saber si estamos en una interseccion
   int cont_int2 = 0; // Contador para numero de intersecciones encontradas
+  bool last_correction = true;  // Booleana para comparar con la correccion
+
+  float dist_right_edge = 0.0;
+  float dist_left_edge = 0.0;
   //
   toLog("Plan41 started");
   //
   while (not finished and not lost and not service.stop)
-  {
+  { 
+    dist_right_edge = medge.rightEdge;
+    dist_left_edge = medge.leftEdge;
     switch (state)
     {
       case 1:
         if (medge.edgeValid)
         {
-          float dist_right_edge = medge.rightEdge;
-          float dist_left_edge = medge.leftEdge;
+         
 
-          // std::cout << "Right edge: " << dist_right_edge << std::endl;
-          // std::cout << "Left edge: " << dist_left_edge << std::endl;
+          // //std::cout << "Right edge: " << dist_right_edge << std::endl;
+          // //std::cout << "Left edge: " << dist_left_edge << std::endl;
           if (medge.width > 0.05){
             cont_int++;
           }
@@ -122,37 +127,52 @@ void BPlan41::run()
             else if (cont_int2 == 2){
               state = 22;
               cont_int = 0;
+              pose.dist = 0;
             }
             else if (cont_int2 == 3){
               state = 23;
+              cont_int = 0;
+            }
+            else if (cont_int2 == 4){
+              state = 23;
+              cont_int = 0;
+            }
+            else if (cont_int2 == 5){
+              state = 22;
+              cont_int = 0;
+            }
+            else if (cont_int2 == 6){
+              state = 22;
               cont_int = 0;
             }
             break;
           }
           else if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
           {
-            std::cout << "Both edges are found" << std::endl;
+            //std::cout << "Both edges are found" << std::endl;
             mixer.setManualControl(true, base_velocity, 0.0);
             last_state = 0;
           }
           else if ((dist_right_edge > 0.0) && last_state != 1)
           {
-            std::cout << "Correcting right edge" << std::endl;
+            //std::cout << "Correcting right edge" << std::endl;
             mixer.setManualControl(true, base_velocity, turn_velocity);
             last_state = 1;
+            last_correction = true;
           }
           else if ((dist_left_edge < 0.0) && last_state != 2)
           {
-            std::cout << "Correcting left edge" << std::endl;
+            //std::cout << "Correcting left edge" << std::endl;
             mixer.setManualControl(true, base_velocity, -turn_velocity);
             last_state = 2;
+            last_correction = true;
           }
         }
         else
         {
           if (last_state != 4 && lost_counter > 10)
           {
-            std::cout << "Lost" << std::endl;
+            //std::cout << "Lost" << std::endl;
             mixer.setManualControl(true, 0.0, 0.0);
             last_state = 4;
             lost_counter = 0;
@@ -167,7 +187,7 @@ void BPlan41::run()
       case 20: // forward looking for line, then turn
 
         mixer.setManualControl(true, 0.0, 0.0);
-        std::cout << "Intersection!" << medge.width << std::endl;
+        //std::cout << "Intersection!" << medge.width << std::endl;
         if (right){
           toLog("found intersection, turn right");
           // set to edge control, left side and 0 offset
@@ -189,7 +209,7 @@ void BPlan41::run()
       case 21: // First intersection, take right turn
 
         mixer.setManualControl(true, 0.0, 0.0);
-        std::cout << "Intersection!" << medge.width << std::endl;
+        //std::cout << "Intersection!" << medge.width << std::endl;
         toLog("found intersection, turn right");
         // set to edge control, left side and 0 offset
         mixer.setManualControl(true, base_velocity, -turn_velocity);
@@ -198,22 +218,41 @@ void BPlan41::run()
         break;
       
       case 22: // Second intersection (seesaw), keep straight
+        if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
+        {
+          //std::cout << "Both edges are found" << std::endl;
+          mixer.setManualControl(true, base_velocity, 0.0);
+          last_state = 0;
+        }
+        else if ((dist_right_edge > 0.0) && last_state != 1)
+        {
+          //std::cout << "Correcting right edge" << std::endl;
+          mixer.setManualControl(true, base_velocity, turn_velocity);
+          last_state = 1;
+        }
+        else if ((dist_left_edge < 0.0) && last_state != 2)
+        {
+          //std::cout << "Correcting left edge" << std::endl;
+          mixer.setManualControl(true, base_velocity, -turn_velocity);
+          last_state = 2;
+        }
+        if(pose.dist > 0.15)
+          state = 1;
 
-        state = 30;
-
-        std::cout << "Intersection!" << medge.width << std::endl;
+        //std::cout << "Intersection!" << medge.width << std::endl;
         toLog("found intersection, keep straight");
         break;
 
       
       case 23: // Third intersection, turn left to the stairs
 
-        mixer.setManualControl(true, 0.0, 0.0);
-        std::cout << "Intersection!" << medge.width << std::endl;
+        // mixer.setManualControl(true, 0.0, 0.0);
+        //std::cout << "Intersection!" << medge.width << std::endl;
         toLog("found intersection, turn left");
         // set to edge control, left side and 0 offset
         mixer.setManualControl(true, base_velocity, turn_velocity);
         state = 30;
+        right = false;
         pose.dist = 0.0;
         break;
         
@@ -224,7 +263,7 @@ void BPlan41::run()
       else {
         mixer.setEdgeMode(true /* left */, 0.03 /* offset */);
       }
-      if (pose.dist > 0.15 && medge.edgeValid )
+      if (pose.dist > 0.20 && medge.edgeValid )
       {
         toLog("Line detected, that is OK to follow");
         
