@@ -121,28 +121,28 @@ void BPlan41::run()
           if (cont_int > 5){
             cont_int2++;
             if (cont_int2 == 1){
-              state = 21;
+              state = 21; // First intersection, take right turn
               cont_int = 0;
             }
             else if (cont_int2 == 2){
-              state = 22;
+              state = 22; // Second intersection (seesaw), keep straight
               cont_int = 0;
               pose.dist = 0;
             }
             else if (cont_int2 == 3){
-              state = 23;
+              state = 23; // Third intersection, turn left to the stairs
               cont_int = 0;
             }
             else if (cont_int2 == 4){
-              state = 23;
+              state = 23; // Forth intersection, same as the third, turn left
               cont_int = 0;
             }
             else if (cont_int2 == 5){
-              state = 22;
+              state = 22; // Fifth intersection, same as the second, keep straight
               cont_int = 0;
             }
             else if (cont_int2 == 6){
-              state = 22;
+              state = 22; // Sixth intersection, same as the second, keep straight
               cont_int = 0;
             }
             break;
@@ -213,6 +213,7 @@ void BPlan41::run()
         toLog("found intersection, turn right");
         // set to edge control, left side and 0 offset
         mixer.setManualControl(true, base_velocity, -turn_velocity);
+        right = true;
         state = 30;
         pose.dist = 0.0;
         break;
@@ -251,8 +252,8 @@ void BPlan41::run()
         toLog("found intersection, turn left");
         // set to edge control, left side and 0 offset
         mixer.setManualControl(true, base_velocity, turn_velocity);
-        state = 30;
         right = false;
+        state = 30;
         pose.dist = 0.0;
         break;
         
