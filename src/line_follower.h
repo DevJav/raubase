@@ -31,7 +31,7 @@ private:
 
     std::thread *th1;
 
-    float __base_velocity = 0.3;
+    float __base_velocity = 0.5;
     float __turn_velocity = 0.7;
     int __last_state = 4;
     int __lost_counter = 0;

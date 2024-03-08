@@ -89,6 +89,9 @@ void BPlan41::run()
   // int last_state = 4;
   // int lost_counter = 0;
 
+  line_follower.setBaseVelocity(0.5);
+  line_follower.setTurnVelocity(1.5);
+
   while (not service.stop)
   {
     bool line_found = line_follower.followLine();

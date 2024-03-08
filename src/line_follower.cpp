@@ -59,13 +59,13 @@ bool LineFollower::followLine()
         else
         {
             __deviation_counter++;
-            if ((dist_right_edge > 0.0) && __last_state != State::CORRECTING_RIGHT_EDGE && __deviation_counter > 10)
+            if ((dist_right_edge > 0.0) && __last_state != State::CORRECTING_RIGHT_EDGE && __deviation_counter > 300)
             {
                 std::cout << "Correcting right edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, __turn_velocity);
                 __last_state = State::CORRECTING_RIGHT_EDGE;
             }
-            else if ((dist_left_edge < 0.0) && __last_state != State::CORRECTING_LEFT_EDGE && __deviation_counter > 10)
+            else if ((dist_left_edge < 0.0) && __last_state != State::CORRECTING_LEFT_EDGE && __deviation_counter > 300)
             {
                 std::cout << "Correcting left edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, -__turn_velocity);
