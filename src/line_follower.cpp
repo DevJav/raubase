@@ -54,18 +54,23 @@ bool LineFollower::followLine()
             std::cout << "Both edges are found" << std::endl;
             mixer.setManualControl(true, __base_velocity, 0.0);
             __last_state = State::BOTH_EDGES;
+            __deviation_counter = 0;
         }
-        else if ((dist_right_edge > 0.0) && __last_state != State::CORRECTING_RIGHT_EDGE)
+        else
         {
-            std::cout << "Correcting right edge" << std::endl;
-            mixer.setManualControl(true, __base_velocity, __turn_velocity);
-            __last_state = State::CORRECTING_RIGHT_EDGE;
-        }
-        else if ((dist_left_edge < 0.0) && __last_state != State::CORRECTING_LEFT_EDGE)
-        {
-            std::cout << "Correcting left edge" << std::endl;
-            mixer.setManualControl(true, __base_velocity, -__turn_velocity);
-            __last_state = State::CORRECTING_LEFT_EDGE;
+            __deviation_counter++;
+            if ((dist_right_edge > 0.0) && __last_state != State::CORRECTING_RIGHT_EDGE && __deviation_counter > 10)
+            {
+                std::cout << "Correcting right edge" << std::endl;
+                mixer.setManualControl(true, __base_velocity, __turn_velocity);
+                __last_state = State::CORRECTING_RIGHT_EDGE;
+            }
+            else if ((dist_left_edge < 0.0) && __last_state != State::CORRECTING_LEFT_EDGE && __deviation_counter > 10)
+            {
+                std::cout << "Correcting left edge" << std::endl;
+                mixer.setManualControl(true, __base_velocity, -__turn_velocity);
+                __last_state = State::CORRECTING_LEFT_EDGE;
+            }
         }
     }
     else
