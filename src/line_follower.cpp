@@ -27,7 +27,9 @@ enum State
     BOTH_EDGES = 0,
     CORRECTING_RIGHT_EDGE = 1,
     CORRECTING_LEFT_EDGE = 2,
-    LOST = 4
+    SOFT_CORRECTING_RIGHT_EDGE = 3,
+    SOFT_CORRECTING_LEFT_EDGE = 4,
+    LOST = 5
 };
 
 void LineFollower::setBaseVelocity(float base_velocity)
@@ -55,7 +57,7 @@ bool LineFollower::followLine()
         float dist_right_edge = medge.rightEdge;
         float dist_left_edge = medge.leftEdge;
 
-        if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && __last_state != State::BOTH_EDGES)
+        if ((dist_right_edge < 0.0 && dist_left_edge > -0.0) && __last_state != State::BOTH_EDGES)
         {
             std::cout << "Both edges are found" << std::endl;
             mixer.setManualControl(true, __base_velocity, 0.0);
@@ -67,15 +69,27 @@ bool LineFollower::followLine()
             __deviation_counter++;
             if ((dist_right_edge > __edge_threshold) && __last_state != State::CORRECTING_RIGHT_EDGE)
             {
-                std::cout << "Correcting right edge" << std::endl;
+                std::cout << "Hard Correcting right edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, __turn_velocity);
                 __last_state = State::CORRECTING_RIGHT_EDGE;
             }
             else if ((dist_left_edge < -__edge_threshold) && __last_state != State::CORRECTING_LEFT_EDGE)
             {
-                std::cout << "Correcting left edge" << std::endl;
+                std::cout << "Hard Correcting left edge" << std::endl;
                 mixer.setManualControl(true, __base_velocity, -__turn_velocity);
                 __last_state = State::CORRECTING_LEFT_EDGE;
+            }
+            else if ((dist_right_edge > 0.0) && (dist_right_edge < __edge_threshold) && __last_state != State::SOFT_CORRECTING_RIGHT_EDGE)
+            {
+                std::cout << "Soft Correcting right edge" << std::endl;
+                mixer.setManualControl(true, __base_velocity, __turn_velocity * 0.5);
+                __last_state = State::SOFT_CORRECTING_RIGHT_EDGE;
+            }
+            else if ((dist_left_edge < 0.0) && (dist_left_edge > -__edge_threshold) && __last_state != State::SOFT_CORRECTING_LEFT_EDGE)
+            {
+                std::cout << "Soft Correcting left edge" << std::endl;
+                mixer.setManualControl(true, __base_velocity, -__turn_velocity * 0.5);
+                __last_state = State::SOFT_CORRECTING_LEFT_EDGE;
             }
         }
     }
