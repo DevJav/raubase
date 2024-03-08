@@ -324,6 +324,7 @@ void UService::terminate()
   stop = true; // stop all threads, when finished current activity
   //
   usleep(100000);
+  line_follower.terminate();
   joyLogi.terminate();
   encoder.terminate();
   pose.terminate();
@@ -338,7 +339,6 @@ void UService::terminate()
   state.terminate();
   servo.terminate();
   dist.terminate();
-  line_follower.terminate();
   // terminate sensors before Teensy
   teensy1.terminate();
   pyvision.terminate();

@@ -16,6 +16,7 @@ void LineFollower::setup()
 
 void LineFollower::terminate()
 { // wait for thread to finish
+    mixer.setManualControl(true, 0.0, 0.0);
     if (th1 != nullptr)
         th1->join();
 }
