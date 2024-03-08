@@ -37,7 +37,7 @@
 #include "cedge.h"
 #include "cmixer.h"
 #include "sdist.h"
-
+#include "line_follower.h"
 #include "bplan41.h"
 
 // create class object
@@ -91,71 +91,31 @@ void BPlan41::run()
 
   while (not service.stop)
   {
-    if (medge.edgeValid)
-    {
-      float dist_right_edge = medge.rightEdge;
-      float dist_left_edge = medge.leftEdge;
-
-      // std::cout << "Right edge: " << dist_right_edge << std::endl;
-      // std::cout << "Left edge: " << dist_left_edge << std::endl;
-
-      if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
-      {
-        std::cout << "Both edges are found" << std::endl;
-        mixer.setManualControl(true, base_velocity, 0.0);
-        last_state = 0;
-      }
-      else if ((dist_right_edge > 0.0) && last_state != 1)
-      {
-        std::cout << "Correcting right edge" << std::endl;
-        mixer.setManualControl(true, base_velocity, turn_velocity);
-        last_state = 1;
-      }
-      else if ((dist_left_edge < 0.0) && last_state != 2)
-      {
-        std::cout << "Correcting left edge" << std::endl;
-        mixer.setManualControl(true, base_velocity, -turn_velocity);
-        last_state = 2;
-      }
-    }
-    else
-    {
-      if (last_state != 4 && lost_counter > 10)
-      {
-        std::cout << "Lost" << std::endl;
-        mixer.setManualControl(true, 0.0, 0.0);
-        last_state = 4;
-        lost_counter = 0;
-      }
-      else
-      {
-        lost_counter++;
-      }
-    }
+    bool line_found = line_follower.followLine();
     usleep(4000);
   }
 }
 
-  void BPlan41::terminate()
-  { //
-    if (logfile != nullptr)
-      fclose(logfile);
-    logfile = nullptr;
-  }
+void BPlan41::terminate()
+{ //
+  if (logfile != nullptr)
+    fclose(logfile);
+  logfile = nullptr;
+}
 
-  void BPlan41::toLog(const char *message)
+void BPlan41::toLog(const char *message)
+{
+  UTime t("now");
+  if (logfile != nullptr)
   {
-    UTime t("now");
-    if (logfile != nullptr)
-    {
-      fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
-              oldstate,
-              message);
-    }
-    if (toConsole)
-    {
-      printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
-             oldstate,
-             message);
-    }
+    fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
+            oldstate,
+            message);
   }
+  if (toConsole)
+  {
+    printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
+           oldstate,
+           message);
+  }
+}

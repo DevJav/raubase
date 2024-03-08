@@ -40,6 +40,7 @@ add_executable(raubase
       src/cmixer.cpp
       src/cmotor.cpp
       src/cservo.cpp
+      src/line_follower.cpp
       src/main.cpp
       src/maruco.cpp
       src/medge.cpp
