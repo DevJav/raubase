@@ -44,6 +44,9 @@ public:
    * terminate */
   void terminate();
 
+  bool followLineLeft(float offset, float velocity);
+  bool followLineRight(float offset, float velocity);
+
 private:
   /**
    * Write a timestamped message to log */

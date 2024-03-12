@@ -26,6 +26,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <map>
 #include "mpose.h"
 #include "steensy.h"
 #include "uservice.h"
@@ -37,7 +38,7 @@
 #include "cedge.h"
 #include "cmixer.h"
 #include "sdist.h"
-#include "line_follower.h"
+// #include "line_follower.h"
 #include "bplan41.h"
 
 // create class object
@@ -71,6 +72,32 @@ BPlan41::~BPlan41()
   terminate();
 }
 
+bool BPlan41::followLineLeft(float offset, float velocity){
+    mixer.setEdgeMode(true /* left */, abs(offset) /* offset */);
+    mixer.setVelocity(velocity);
+}
+
+bool BPlan41::followLineRight(float offset, float velocity){
+    mixer.setEdgeMode(false /* right */, -abs(offset) /* offset */);
+    mixer.setVelocity(velocity);
+}
+
+
+
+enum intersection_state {
+    INIT,
+    FIRST,
+    SECOND,
+    THIRD,
+    FOURTH,
+    FIFTH,
+    SIXTH,
+    SEVENTH,
+    EIGHTH,
+    NINTH,
+    TENTH
+};
+
 void BPlan41::run()
 {
   if (not setupDone)
@@ -82,17 +109,181 @@ void BPlan41::run()
   toLog("Plan41 started");
   //
 
-  line_follower.setBaseVelocity(strtof(ini["velocity"]["base_velocity"].c_str(), nullptr));
-  line_follower.setTurnVelocity(strtof(ini["velocity"]["turn_velocity"].c_str(), nullptr));
+  int cont_int = 0;
+    int cont_int2 = 0;
+    bool right = true;
 
-  float edge_threshold = strtof(ini["velocity"]["edge_threshold"].c_str(), nullptr);
-  line_follower.setEdgeThreshold(edge_threshold);
+    intersection_state state = INIT;
+    std::map <intersection_state, int> visited_counter = {
+        {INIT, 0},
+        {FIRST, 0},
+        {SECOND, 0},
+        {THIRD, 0},
+        {FOURTH, 0},
+        {FIFTH, 0},
+        {SIXTH, 0},
+        {SEVENTH, 0},
+        {EIGHTH, 0},
+        {NINTH, 0},
+        {TENTH, 0}
+    };
 
-  while (not service.stop)
-  {
-    bool line_found = line_follower.followLine();
-    usleep(4000);
-  }
+    pose.dist = 0.0;
+
+    switch (state)
+    {
+    case INIT:  // Follow line either right edge or left edge
+        visited_counter[state]++;
+        /* code */
+        if(right){
+            followLineRight(0.03, 0.4);
+        }
+        else{
+            followLineLeft(0.03, 0.4);
+        }
+
+        // Wait 10 cm to start checking again for intersections (prevents false positives)
+        if(pose.dist > 0.1){
+            if (medge.width > 0.05){
+                cont_int++;
+            }
+            else {
+                cont_int = 0;
+            }
+
+            // If 5 positives are found, then we are in an intersection
+            if (cont_int > 5){
+                cont_int2++;
+                if (cont_int2 == 1){
+                    state = FIRST; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "First intersection" << std::endl;
+                }
+                if (cont_int2 == 2){
+                    state = SECOND; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Second intersection" << std::endl;
+                }
+                if (cont_int2 == 3){
+                    state = THIRD; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Third intersection" << std::endl;
+                }
+                if (cont_int2 == 4){
+                    state = FOURTH; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Fourth intersection" << std::endl;
+                }
+                if (cont_int2 == 5){
+                    state = FIFTH; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Fifth intersection" << std::endl;
+                }
+                if (cont_int2 == 6){
+                    state = SIXTH; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Sixth intersection" << std::endl;
+
+                    pose.resetPose();
+                    mixer.setVelocity(0.3);
+                    // mixer.setDesiredHeading(M_PI/2);
+                }
+                if (cont_int2 == 7 ){
+                    state = FIRST; // First intersection, take right turn
+                    cont_int = 0;
+                    std::cout << "Seventh intersection" << std::endl; 
+                }
+
+            }
+        }
+        break;
+
+    case FIRST:
+        
+        
+        if (visited_counter[state] == 1){
+            right = true;
+            visited_counter[state]++;
+        }
+        else if (visited_counter[state] == 2 && pose.dist > 0.10){// TODO: aun estar por ver que le mandamos
+            right = true;
+
+            visited_counter[state]++;
+
+            pose.resetPose();
+            mixer.setVelocity(0.0);
+            mixer.setDesiredHeading(M_PI);
+        }
+        
+        pose.dist = 0.0;
+        state = INIT;
+        break;
+
+    case SECOND:
+        visited_counter[state]++;
+
+        if (visited_counter[state] == 1){
+            right = true;
+        }
+        else if (visited_counter[state] == 2){// TODO: aun estar por ver que le mandamos
+            right = false;
+        }
+        right = true;
+        pose.dist = 0.0;
+        state = INIT;
+        break;
+
+    case THIRD:
+        visited_counter[state]++;
+        
+        right = false;
+        pose.dist = 0.0;
+        state = INIT;
+                
+        break;
+
+    case FOURTH:
+        visited_counter[state]++;
+        
+        right = true;
+        pose.dist = 0.0;
+        state = INIT;
+        break;
+
+    case FIFTH:
+        visited_counter[state]++;
+        
+        right = false;
+        pose.dist = 0.0;
+        state = INIT;
+        break;
+
+    case SIXTH: 
+        
+        
+        if (pose.dist > 0.1){
+            visited_counter[state]++;
+
+            pose.dist = 0.0;
+            state = INIT;
+        }
+        break;
+
+    case SEVENTH:
+        visited_counter[state]++;
+
+        
+        
+        right = true;
+        pose.dist = 0.0;
+        state = INIT;
+        break;
+    
+    default:
+        break;
+    }
+    usleep(2000);
+    
 }
 
 void BPlan41::terminate()
