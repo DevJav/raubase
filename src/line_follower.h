@@ -18,6 +18,8 @@ public:
     void terminate();
 
     bool followLine();
+    bool followLineLeft(float offset, float velocity);
+    bool followLineRight(float offset, float velocity);
 
     void setBaseVelocity(float base_velocity);
     void setTurnVelocity(float turn_velocity);

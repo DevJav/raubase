@@ -50,6 +50,16 @@ void LineFollower::setEdgeThreshold(float edge_threshold)
     __edge_threshold = edge_threshold;
 }
 
+bool LineFollower::followLineLeft(float offset, float velocity){
+    mixer.setEdgeMode(true /* left */, abs(offset) /* offset */);
+    mixer.setVelocity(velocity);
+}
+
+bool LineFollower::followLineRight(float offset, float velocity){
+    mixer.setEdgeMode(false /* right */, -abs(offset) /* offset */);
+    mixer.setVelocity(velocity);
+}
+
 bool LineFollower::followLine()
 {
     if (medge.edgeValid)
@@ -70,13 +80,15 @@ bool LineFollower::followLine()
             if ((dist_right_edge > __edge_threshold) && __last_state != State::CORRECTING_RIGHT_EDGE)
             {
                 std::cout << "Hard Correcting right edge" << std::endl;
-                mixer.setManualControl(true, __base_velocity, __turn_velocity);
+                // mixer.setManualControl(true, __base_velocity, __turn_velocity);
+                line_follower.followLineRight(0.03, __base_velocity);
                 __last_state = State::CORRECTING_RIGHT_EDGE;
             }
             else if ((dist_left_edge < -__edge_threshold) && __last_state != State::CORRECTING_LEFT_EDGE)
             {
                 std::cout << "Hard Correcting left edge" << std::endl;
-                mixer.setManualControl(true, __base_velocity, -__turn_velocity);
+                // mixer.setManualControl(true, __base_velocity, -__turn_velocity);
+                line_follower.followLineLeft(0.03, __base_velocity);
                 __last_state = State::CORRECTING_LEFT_EDGE;
             }
             else if ((dist_right_edge > 0.0) && (dist_right_edge < __edge_threshold) && __last_state != State::SOFT_CORRECTING_RIGHT_EDGE)
