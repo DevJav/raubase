@@ -81,7 +81,7 @@ void BPlan41::run()
   UTime t("now");
   bool finished = false;
   bool lost = false;
-  state = 1;
+  state = 0;
   oldstate = state;
   const int MSL = 100;
   char s[MSL];
@@ -105,6 +105,14 @@ void BPlan41::run()
     dist_left_edge = medge.leftEdge;
     switch (state)
     {
+      case 0:
+        if (medge.edgeValid)
+        {
+          // Follow the edge
+          mixer.setEdgeMode(true /* left */, 0.03 /* offset */);
+          last_state = 0;
+
+        }
       case 1:
         if (medge.edgeValid)
         {
@@ -208,7 +216,7 @@ void BPlan41::run()
       
       case 21: // First intersection, take right turn
 
-        mixer.setManualControl(true, 0.0, 0.0);
+        // mixer.setManualControl(true, 0.0, 0.0);
         //std::cout << "Intersection!" << medge.width << std::endl;
         toLog("found intersection, turn right");
         // set to edge control, left side and 0 offset
@@ -252,6 +260,18 @@ void BPlan41::run()
         toLog("found intersection, turn left");
         // set to edge control, left side and 0 offset
         mixer.setManualControl(true, base_velocity, turn_velocity);
+        right = false;
+        state = 30;
+        pose.dist = 0.0;
+        break;
+      
+      case 24: // Fourth intersection, turn left to the stairs
+
+        // mixer.setManualControl(true, 0.0, 0.0);
+        //std::cout << "Intersection!" << medge.width << std::endl;
+        toLog("found intersection, turn left");
+        // set to edge control, left side and 0 offset
+        mixer.setManualControl(true, base_velocity, turn_velocity + 0.2);
         right = false;
         state = 30;
         pose.dist = 0.0;
