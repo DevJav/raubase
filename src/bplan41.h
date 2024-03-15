@@ -46,6 +46,7 @@ public:
 
   bool followLineLeft(float offset, float velocity);
   bool followLineRight(float offset, float velocity);
+  bool detectIntersection(int & intersection_detection_count);
 
 private:
   /**
