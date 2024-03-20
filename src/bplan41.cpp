@@ -1,30 +1,31 @@
-/*  
- * 
+/*
+ *
  * Copyright © 2023 DTU,
  * Author:
  * Christian Andersen jcan@dtu.dk
- * 
+ *
  * The MIT License (MIT)  https://mit-license.org/
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the “Software”), to deal in the Software without restriction, 
- * including without limitation the rights to use, copy, modify, merge, publish, distribute, 
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software 
+ * and associated documentation files (the “Software”), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
  * is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies 
+ *
+ * The above copyright notice and this permission notice shall be included in all copies
  * or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE. */
 
 #include <string>
 #include <string.h>
 #include <math.h>
+#include <map>
 #include <unistd.h>
 #include "mpose.h"
 #include "steensy.h"
@@ -42,7 +43,6 @@
 
 // create class object
 BPlan41 plan41;
-
 
 void BPlan41::setup()
 { // ensure there is default values in ini-file
@@ -72,297 +72,231 @@ BPlan41::~BPlan41()
   terminate();
 }
 
+enum intersection_state
+{
+  INIT,
+  FIRST,
+  SECOND,
+  THIRD,
+  FOURTH,
+  FIFTH,
+  SIXTH,
+  SEVENTH,
+  EIGHTH,
+  NINTH,
+  TENTH
+};
+
 void BPlan41::run()
 {
   if (not setupDone)
     setup();
-  if (ini["plan41"]["run"] == "false")
+  if (ini["Plan41"]["run"] == "false")
     return;
   UTime t("now");
+  //
+  toLog("Plan41 started");
+  //
+
+  int cont_int = 0;
+  int cont_int2 = 0;
+  bool right = true;
+
+  intersection_state state = INIT;
+  std::map<intersection_state, int> visited_counter = {
+      {INIT, 0},
+      {FIRST, 0},
+      {SECOND, 0},
+      {THIRD, 0},
+      {FOURTH, 0},
+      {FIFTH, 0},
+      {SIXTH, 0},
+      {SEVENTH, 0},
+      {EIGHTH, 0},
+      {NINTH, 0},
+      {TENTH, 0}};
+
+  pose.dist = 0.0;
   bool finished = false;
   bool lost = false;
-  state = 0;
-  oldstate = state;
-  const int MSL = 100;
-  char s[MSL];
-  float base_velocity = 0.25;
-  float turn_velocity = 0.6;
-  int last_state = 4;
-  int lost_counter = 0;
-  bool right = true;
-  int cont_int = 0;   // Contador para saber si estamos en una interseccion
-  int cont_int2 = 0; // Contador para numero de intersecciones encontradas
-  bool last_correction = true;  // Booleana para comparar con la correccion
 
-  float dist_right_edge = 0.0;
-  float dist_left_edge = 0.0;
   //
   toLog("Plan41 started");
   //
   while (not finished and not lost and not service.stop)
-  { 
-    dist_right_edge = medge.rightEdge;
-    dist_left_edge = medge.leftEdge;
+  {
     switch (state)
     {
-      case 0:
-        if (medge.edgeValid)
-        {
-          // Follow the edge
-          mixer.setEdgeMode(true /* left */, 0.03 /* offset */);
-          last_state = 0;
+    case INIT: // Follow line either right edge or left edge
+      visited_counter[state]++;
+      /* code */
+      if (right)
+      {
 
-        }
-      case 1:
-        if (medge.edgeValid)
-        {
-         
+        mixer.setVelocity(0.3);
+        mixer.setEdgeMode(false /* right */, -abs(0.03) /* offset */);
+      }
+      else
+      {
 
-          // //std::cout << "Right edge: " << dist_right_edge << std::endl;
-          // //std::cout << "Left edge: " << dist_left_edge << std::endl;
-          if (medge.width > 0.05){
-            cont_int++;
-          }
-          else {
-            cont_int = 0;
-          }
-          if (cont_int > 5){
-            cont_int2++;
-            if (cont_int2 == 1){
-              state = 21; // First intersection, take right turn
-              cont_int = 0;
-            }
-            else if (cont_int2 == 2){
-              state = 22; // Second intersection (seesaw), keep straight
-              cont_int = 0;
-              pose.dist = 0;
-            }
-            else if (cont_int2 == 3){
-              state = 23; // Third intersection, turn left to the stairs
-              cont_int = 0;
-            }
-            else if (cont_int2 == 4){
-              state = 23; // Forth intersection, same as the third, turn left
-              cont_int = 0;
-            }
-            else if (cont_int2 == 5){
-              state = 22; // Fifth intersection, same as the second, keep straight
-              cont_int = 0;
-            }
-            else if (cont_int2 == 6){
-              state = 22; // Sixth intersection, same as the second, keep straight
-              cont_int = 0;
-            }
-            break;
-          }
-          else if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
-          {
-            //std::cout << "Both edges are found" << std::endl;
-            mixer.setManualControl(true, base_velocity, 0.0);
-            last_state = 0;
-          }
-          else if ((dist_right_edge > 0.0) && last_state != 1)
-          {
-            //std::cout << "Correcting right edge" << std::endl;
-            mixer.setManualControl(true, base_velocity, turn_velocity);
-            last_state = 1;
-            last_correction = true;
-          }
-          else if ((dist_left_edge < 0.0) && last_state != 2)
-          {
-            //std::cout << "Correcting left edge" << std::endl;
-            mixer.setManualControl(true, base_velocity, -turn_velocity);
-            last_state = 2;
-            last_correction = true;
-          }
+        mixer.setVelocity(0.3);
+        mixer.setEdgeMode(true /* left */, abs(0.03) /* offset */);
+      }
+
+      // Wait 10 cm to start checking again for intersections (prevents false positives)
+      if (pose.dist > 0.1)
+      {
+        if (medge.width > 0.05)
+        {
+          cont_int++;
         }
         else
         {
-          if (last_state != 4 && lost_counter > 10)
+          cont_int = 0;
+        }
+
+        // If 5 positives are found, then we are in an intersection
+        if (cont_int > 5)
+        {
+          cont_int2++;
+          if (cont_int2 == 1)
           {
-            //std::cout << "Lost" << std::endl;
-            mixer.setManualControl(true, 0.0, 0.0);
-            last_state = 4;
-            lost_counter = 0;
+            state = FIRST; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "First intersection" << std::endl;
           }
-          else
+          if (cont_int2 == 2)
           {
-            lost_counter++;
+            state = SECOND; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Second intersection" << std::endl;
+          }
+          if (cont_int2 == 3)
+          {
+            state = THIRD; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Third intersection" << std::endl;
+          }
+          if (cont_int2 == 4)
+          {
+            state = FOURTH; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Fourth intersection" << std::endl;
+          }
+          if (cont_int2 == 5)
+          {
+            state = FIFTH; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Fifth intersection" << std::endl;
+          }
+          if (cont_int2 == 6)
+          {
+            state = SIXTH; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Sixth intersection" << std::endl;
+
+            pose.resetPose();
+            mixer.setVelocity(0.3);
+            // mixer.setDesiredHeading(M_PI/2);
+          }
+          if (cont_int2 == 7)
+          {
+            state = FIRST; // First intersection, take right turn
+            cont_int = 0;
+            std::cout << "Seventh intersection" << std::endl;
           }
         }
-        break;
-      
-      case 20: // forward looking for line, then turn
+      }
+      break;
 
-        mixer.setManualControl(true, 0.0, 0.0);
-        //std::cout << "Intersection!" << medge.width << std::endl;
-        if (right){
-          toLog("found intersection, turn right");
-          // set to edge control, left side and 0 offset
-          mixer.setManualControl(true, base_velocity, -turn_velocity);
-          state = 30;
-          pose.dist = 0.0;
-        }
-        else {
-          toLog("found intersection, turn right");
-          // set to edge control, left side and 0 offset
-          mixer.setManualControl(true, base_velocity, turn_velocity);
-          state = 30;
-          pose.dist = 0.0;
-        }
-        right = !right;
-        break;
+    case FIRST:
 
-      
-      case 21: // First intersection, take right turn
-
-        // mixer.setManualControl(true, 0.0, 0.0);
-        //std::cout << "Intersection!" << medge.width << std::endl;
-        toLog("found intersection, turn right");
-        // set to edge control, left side and 0 offset
-        mixer.setManualControl(true, base_velocity, -turn_velocity);
+      if (visited_counter[state] == 1)
+      {
         right = true;
-        state = 30;
-        pose.dist = 0.0;
-        break;
-      
-      case 22: // Second intersection (seesaw), keep straight
-        if ((dist_right_edge < 0.0 && dist_left_edge > 0.0) && last_state != 0)
-        {
-          //std::cout << "Both edges are found" << std::endl;
-          mixer.setManualControl(true, base_velocity, 0.0);
-          last_state = 0;
-        }
-        else if ((dist_right_edge > 0.0) && last_state != 1)
-        {
-          //std::cout << "Correcting right edge" << std::endl;
-          mixer.setManualControl(true, base_velocity, turn_velocity);
-          last_state = 1;
-        }
-        else if ((dist_left_edge < 0.0) && last_state != 2)
-        {
-          //std::cout << "Correcting left edge" << std::endl;
-          mixer.setManualControl(true, base_velocity, -turn_velocity);
-          last_state = 2;
-        }
-        if(pose.dist > 0.15)
-          state = 1;
+        visited_counter[state]++;
+      }
+      else if (visited_counter[state] == 2 && pose.dist > 0.10)
+      { // TODO: aun estar por ver que le mandamos
+        right = true;
 
-        //std::cout << "Intersection!" << medge.width << std::endl;
-        toLog("found intersection, keep straight");
-        break;
+        visited_counter[state]++;
 
-      
-      case 23: // Third intersection, turn left to the stairs
+        pose.resetPose();
+        mixer.setVelocity(0.0);
+        mixer.setDesiredHeading(M_PI);
+      }
 
-        // mixer.setManualControl(true, 0.0, 0.0);
-        //std::cout << "Intersection!" << medge.width << std::endl;
-        toLog("found intersection, turn left");
-        // set to edge control, left side and 0 offset
-        mixer.setManualControl(true, base_velocity, turn_velocity);
+      pose.dist = 0.0;
+      state = INIT;
+      break;
+
+    case SECOND:
+      visited_counter[state]++;
+
+      if (visited_counter[state] == 1)
+      {
+        right = true;
+      }
+      else if (visited_counter[state] == 2)
+      { // TODO: aun estar por ver que le mandamos
         right = false;
-        state = 30;
-        pose.dist = 0.0;
-        break;
-      
-      case 24: // Fourth intersection, turn left to the stairs
+      }
+      right = true;
+      pose.dist = 0.0;
+      state = INIT;
+      break;
 
-        // mixer.setManualControl(true, 0.0, 0.0);
-        //std::cout << "Intersection!" << medge.width << std::endl;
-        toLog("found intersection, turn left");
-        // set to edge control, left side and 0 offset
-        mixer.setManualControl(true, base_velocity, turn_velocity + 0.2);
-        right = false;
-        state = 30;
+    case THIRD:
+      visited_counter[state]++;
+
+      right = false;
+      pose.dist = 0.0;
+      state = INIT;
+
+      break;
+
+    case FOURTH:
+      visited_counter[state]++;
+
+      right = true;
+      pose.dist = 0.0;
+      state = INIT;
+      break;
+
+    case FIFTH:
+      visited_counter[state]++;
+
+      right = false;
+      pose.dist = 0.0;
+      state = INIT;
+      break;
+
+    case SIXTH:
+
+      if (pose.dist > 0.1)
+      {
+        visited_counter[state]++;
+
         pose.dist = 0.0;
-        break;
-        
-      case 30: // Continue turn until right edge is almost reached, then follow right edge
-      if (right){
-        mixer.setEdgeMode(false /* right */, -0.03 /* offset */);
+        state = INIT;
       }
-      else {
-        mixer.setEdgeMode(true /* left */, 0.03 /* offset */);
-      }
-      if (pose.dist > 0.20 && medge.edgeValid )
-      {
-        toLog("Line detected, that is OK to follow");
-        
-        mixer.setVelocity(base_velocity);
-        state = 1;
-        pose.dist = 0;
-      }
-      else if (t.getTimePassed() > 10)
-      {
-        toLog("Time passed, no crossing line");
-        lost = true;
-      }
-      else if (pose.dist > 1.0)
-      {
-        toLog("Driven too long");
-        state = 90;
-      }
-        break;
-      // case 40: // follow edge until crossing line, the go straight
-      //   if (medge.width > 0.075 and pose.dist > 0.2)
-      //   { // go straight
-      //     mixer.setTurnrate(0);
-      //     pose.dist = 0;
-      //     state = 50;
-      //   }
-      //   else if (t.getTimePassed() > 10)
-      //   {
-      //     toLog("too long time");
-      //     finished = true;
-      //   }
-      //   else if (not medge.edgeValid)
-      //   {
-      //     toLog("Lost line");
-      //     state = 80;
-      //   }
-      //   break;
-      // case 50: // continue straight until wall is close
-      //   if (dist.dist[0] < 0.15)
-      //   { // wall found
-      //     toLog("wall found");
-      //     mixer.setVelocity(0);
-      //     finished = true;
-      //   }
-      //   else if (t.getTimePassed() > 10)
-      //   {
-      //     toLog("too long time");
-      //     lost = true;
-      //   }
-      //   else if (pose.dist > 1.5)
-      //   {
-      //     toLog("too far");
-      //     lost = true;
-      //   }
-      //   break;
-      default:
-        lost = true;
-        break;
+      break;
+
+    case SEVENTH:
+      visited_counter[state]++;
+
+      right = true;
+      pose.dist = 0.0;
+      state = INIT;
+      break;
+
+    default:
+      break;
     }
-    if (state != oldstate)
-    { // C-type string print
-      snprintf(s, MSL, "State change from %d to %d", oldstate, state);
-      toLog(s);
-      oldstate = state;
-      t.now();
-    }
-    // wait a bit to offload CPU (4000 = 4ms)
-    usleep(4000);
+    usleep(2000);
   }
-  if (lost)
-  { // there may be better options, but for now - stop
-    toLog("Plan41 got lost - stopping");
-    mixer.setVelocity(0);
-    mixer.setTurnrate(0);
-  }
-  else
-    toLog("Plan41 finished");
 }
-
 
 void BPlan41::terminate()
 { //
@@ -371,18 +305,18 @@ void BPlan41::terminate()
   logfile = nullptr;
 }
 
-void BPlan41::toLog(const char* message)
+void BPlan41::toLog(const char *message)
 {
   UTime t("now");
   if (logfile != nullptr)
   {
-    fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec()/100,
+    fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
             oldstate,
             message);
   }
   if (toConsole)
   {
-    printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec()/100,
+    printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
            oldstate,
            message);
   }
