@@ -46,278 +46,374 @@ BPlan41 plan41;
 
 void BPlan41::setup()
 { // ensure there is default values in ini-file
-  if (not ini["plan41"].has("log"))
-  { // no data yet, so generate some default values
-    ini["plan41"]["log"] = "true";
-    ini["plan41"]["run"] = "false";
-    ini["plan41"]["print"] = "true";
-  }
-  // get values from ini-file
-  toConsole = ini["plan41"]["print"] == "true";
-  //
-  if (ini["plan41"]["log"] == "true")
-  { // open logfile
-    std::string fn = service.logPath + "log_plan41.txt";
-    logfile = fopen(fn.c_str(), "w");
-    fprintf(logfile, "%% Mission plan41 logfile\n");
-    fprintf(logfile, "%% 1 \tTime (sec)\n");
-    fprintf(logfile, "%% 2 \tMission state\n");
-    fprintf(logfile, "%% 3 \t%% Mission status (mostly for debug)\n");
-  }
-  setupDone = true;
+    if (not ini["plan41"].has("log"))
+    { // no data yet, so generate some default values
+        ini["plan41"]["log"] = "true";
+        ini["plan41"]["run"] = "false";
+        ini["plan41"]["print"] = "true";
+    }
+    // get values from ini-file
+    toConsole = ini["plan41"]["print"] == "true";
+    //
+    if (ini["plan41"]["log"] == "true")
+    { // open logfile
+        std::string fn = service.logPath + "log_plan41.txt";
+        logfile = fopen(fn.c_str(), "w");
+        fprintf(logfile, "%% Mission plan41 logfile\n");
+        fprintf(logfile, "%% 1 \tTime (sec)\n");
+        fprintf(logfile, "%% 2 \tMission state\n");
+        fprintf(logfile, "%% 3 \t%% Mission status (mostly for debug)\n");
+    }
+    setupDone = true;
 }
 
 BPlan41::~BPlan41()
 {
-  terminate();
+    terminate();
 }
 
 enum intersection_state
 {
-  INIT,
-  FIRST,
-  SECOND,
-  THIRD,
-  FOURTH,
-  FIFTH,
-  SIXTH,
-  SEVENTH,
-  EIGHTH,
-  NINTH,
-  TENTH
+    INIT,
+    FIRST,
+    SECOND,
+    THIRD,
+    FOURTH,
+    FIFTH,
+    SIXTH,
+    SEVENTH,
+    EIGHTH,
+    NINTH,
+    TENTH
 };
+
+void BPlan41::movement(bool right, float margin = 0.03)
+{
+    if (right)
+    {
+
+        mixer.setVelocity(0.3);
+        mixer.setEdgeMode(false /* right */, -abs(margin) /* offset */);
+    }
+    else
+    {
+
+        mixer.setVelocity(0.3);
+        mixer.setEdgeMode(true /* left */, abs(margin) /* offset */);
+    }
+}
+
+void BPlan41::turn(float angle)
+{
+    pose.resetPose();
+    mixer.setVelocity(0.0);
+    mixer.setDesiredHeading(angle);
+    while (pose.turned < angle)
+    {
+        // std::cout << "Turned:" << pose.turned << "of" << angle << std::endl;
+    }
+}
 
 void BPlan41::run()
 {
-  if (not setupDone)
-    setup();
-  if (ini["Plan41"]["run"] == "false")
-    return;
-  UTime t("now");
-  //
-  toLog("Plan41 started");
-  //
+    if (not setupDone)
+        setup();
+    if (ini["Plan41"]["run"] == "false")
+        return;
+    UTime t("now");
+    //
+    toLog("Plan41 started");
+    //
 
-  int cont_int = 0;
-  int cont_int2 = 0;
-  bool right = true;
+    int cont_int = 0;
+    int cont_int2 = 0;
+    bool right = true;
 
-  intersection_state state = INIT;
-  std::map<intersection_state, int> visited_counter = {
-      {INIT, 0},
-      {FIRST, 0},
-      {SECOND, 0},
-      {THIRD, 0},
-      {FOURTH, 0},
-      {FIFTH, 0},
-      {SIXTH, 0},
-      {SEVENTH, 0},
-      {EIGHTH, 0},
-      {NINTH, 0},
-      {TENTH, 0}};
+    intersection_state state = INIT;
+    std::map<intersection_state, int> visited_counter = {
+        {INIT, 0},
+        {FIRST, 0},
+        {SECOND, 0},
+        {THIRD, 0},
+        {FOURTH, 0},
+        {FIFTH, 0},
+        {SIXTH, 0},
+        {SEVENTH, 0},
+        {EIGHTH, 0},
+        {NINTH, 0},
+        {TENTH, 0}};
 
-  pose.dist = 0.0;
-  bool finished = false;
-  bool lost = false;
+    pose.dist = 0.0;
+    bool finished = false;
+    bool lost = false;
 
-  //
-  toLog("Plan41 started");
-  //
-  while (not finished and not lost and not service.stop)
-  {
-    switch (state)
+    bool first_time = true;
+
+    //
+    toLog("Plan41 started");
+    //
+
+    bool servo_enabled = (ini["servo_control"]["enabled"] == "true");
+    int servo_position = strtof(ini["servo_control"]["position"].c_str(), nullptr);
+    int servo_velocity = strtof(ini["servo_control"]["velocity"].c_str(), nullptr);
+
+    // std::cout << servo_enabled << servo_position << servo_velocity << std::endl;
+
+    // servo.setServo(1, servo_enabled, servo_position, servo_velocity);
+
+    int max_cont = 10;
+
+    bool new_inters = false;
+
+    while (not finished and not lost and not service.stop)
     {
-    case INIT: // Follow line either right edge or left edge
-      visited_counter[state]++;
-      /* code */
-      if (right)
-      {
-
-        mixer.setVelocity(0.3);
-        mixer.setEdgeMode(false /* right */, -abs(0.03) /* offset */);
-      }
-      else
-      {
-
-        mixer.setVelocity(0.3);
-        mixer.setEdgeMode(true /* left */, abs(0.03) /* offset */);
-      }
-
-      // Wait 10 cm to start checking again for intersections (prevents false positives)
-      if (pose.dist > 0.1)
-      {
-        if (medge.width > 0.05)
+        if (pose.dist > 0.3)
         {
-          cont_int++;
+            if (medge.width > 0.05)
+            {
+                cont_int++;
+            }
+            else
+            {
+                cont_int = 0;
+            }
+
+            // If 5 positives are found, then we are in an intersection
+            if (cont_int > max_cont)
+            {
+                std::cout << "Intersection found" << std::endl;
+                new_inters = true;
+            }
         }
-        else
+        switch (state)
         {
-          cont_int = 0;
+        case INIT: // Follow line either right edge or left edge
+            // std::cout << "Enabled:" << servo_enabled << "Position" << servo_position << "vel" << servo_velocity << std::endl;
+            // std::cout << t.getTimePassed() << std::endl;
+            // if (first_time)
+            // {
+            //     mixer.setVelocity(0.3);
+            //     t.now();
+            //     first_time = false;
+            // }
+            // else if (t.getTimePassed() > 3)
+            // {
+            //     std::cout << "Turning" << std::endl;
+            //     mixer.setVelocity(0.0);
+            //     mixer.setDesiredHeading(M_PI / 2);
+            // }
+            movement(false);
+
+            if (new_inters)
+            {
+                state = FIRST;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case FIRST:
+            // Girar a la izquierda en la primera interseccion despues de la guillotina
+            if (first_time)
+            {
+                std::cout << "First" << std::endl;
+                movement(false, 0.003);
+                first_time = false;
+            }
+            if (new_inters)
+            {
+                state = SECOND;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            servo_position = -200;
+            // servo.setServo(1, servo_enabled, servo_position, servo_velocity);
+
+            break;
+
+        case SECOND:
+            // Llegar a interseccion para entrar en la rotonda. Girar 90 grados y esperar a poder pasar sin chocar con el robot.
+            if (first_time)
+            {
+                std::cout << "Second" << std::endl;
+                turn(-M_PI / 2);
+                first_time = false;
+                movement(true); // TODO: remove from here
+            }
+            // Esperara a que pase el regbot por delante. Avanzar.
+
+            // Cambio a estado third cuando nueva interseccion
+            if (new_inters)
+            {
+                state = THIRD;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case THIRD:
+
+            // Girar de nuevo a izquierda para entrar en la rotonda y luego seguir la linea hasta llegar al punto inicial (nueva interseccion)
+            if (first_time)
+            {
+                std::cout << "Third" << std::endl;
+                turn(M_PI / 2);
+                movement(true);
+                first_time = false;
+            }
+            if (new_inters)
+            {
+                state = FOURTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case FOURTH:
+
+            // Girar de nuevo a izquierda para salir de la rotonda
+            if (first_time)
+            {
+                turn(M_PI / 2);
+                movement(true);
+                first_time = false;
+            }
+            if (new_inters)
+            {
+                state = FIFTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case FIFTH:
+            // avanzar por la union entre la rotonda y el circuito hasta la interseccion
+            if (first_time)
+            {
+                movement(true);
+                first_time = false;
+            }
+            if (new_inters)
+            {
+                state = SIXTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case SIXTH:
+
+            // Girar izquierda y volver al trazo principal
+            // Continuar linea y esperar a siguiente interseccion (hacha)
+            if (first_time)
+            {
+                turn(M_PI / 2);
+                movement(true);
+                first_time = false;
+            }
+            if (new_inters)
+            {
+                state = SEVENTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+
+            break;
+
+        case SEVENTH:
+            // Implementar logica para pasar el hacha, continuar hasta siguiente interseccion y seguir hasta el fin de la linea
+            if (first_time)
+            {
+                movement(false);
+                first_time = false;
+                pose.dist = 0.0;
+            }
+            if (new_inters)
+            {
+                state = EIGHTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+            break;
+
+        case EIGHTH:
+            if (first_time)
+            {
+                turn(-M_PI / 2);
+                movement(false);
+                first_time = false;
+                pose.dist = 0.0;
+            }
+            if (new_inters)
+            {
+                state = NINTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+            break;
+
+        case NINTH:
+            if (first_time)
+            {
+                turn(-M_PI / 2);
+                movement(false);
+                first_time = false;
+                pose.dist = 0.0;
+            }
+            if (new_inters)
+            {
+                state = EIGHTH;
+                pose.dist = 0.0;
+                new_inters = false;
+                first_time = true;
+            }
+            break;
+
+        default:
+            break;
         }
-
-        // If 5 positives are found, then we are in an intersection
-        if (cont_int > 5)
-        {
-          cont_int2++;
-          if (cont_int2 == 1)
-          {
-            state = FIRST; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "First intersection" << std::endl;
-          }
-          if (cont_int2 == 2)
-          {
-            state = SECOND; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Second intersection" << std::endl;
-          }
-          if (cont_int2 == 3)
-          {
-            state = THIRD; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Third intersection" << std::endl;
-          }
-          if (cont_int2 == 4)
-          {
-            state = FOURTH; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Fourth intersection" << std::endl;
-          }
-          if (cont_int2 == 5)
-          {
-            state = FIFTH; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Fifth intersection" << std::endl;
-          }
-          if (cont_int2 == 6)
-          {
-            state = SIXTH; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Sixth intersection" << std::endl;
-
-            pose.resetPose();
-            mixer.setVelocity(0.3);
-            // mixer.setDesiredHeading(M_PI/2);
-          }
-          if (cont_int2 == 7)
-          {
-            state = FIRST; // First intersection, take right turn
-            cont_int = 0;
-            std::cout << "Seventh intersection" << std::endl;
-          }
-        }
-      }
-      break;
-
-    case FIRST:
-
-      if (visited_counter[state] == 1)
-      {
-        right = true;
-        visited_counter[state]++;
-      }
-      else if (visited_counter[state] == 2 && pose.dist > 0.10)
-      { // TODO: aun estar por ver que le mandamos
-        right = true;
-
-        visited_counter[state]++;
-
-        pose.resetPose();
-        mixer.setVelocity(0.0);
-        mixer.setDesiredHeading(M_PI);
-      }
-
-      pose.dist = 0.0;
-      state = INIT;
-      break;
-
-    case SECOND:
-      visited_counter[state]++;
-
-      if (visited_counter[state] == 1)
-      {
-        right = true;
-      }
-      else if (visited_counter[state] == 2)
-      { // TODO: aun estar por ver que le mandamos
-        right = false;
-      }
-      right = true;
-      pose.dist = 0.0;
-      state = INIT;
-      break;
-
-    case THIRD:
-      visited_counter[state]++;
-
-      right = false;
-      pose.dist = 0.0;
-      state = INIT;
-
-      break;
-
-    case FOURTH:
-      visited_counter[state]++;
-
-      right = true;
-      pose.dist = 0.0;
-      state = INIT;
-      break;
-
-    case FIFTH:
-      visited_counter[state]++;
-
-      right = false;
-      pose.dist = 0.0;
-      state = INIT;
-      break;
-
-    case SIXTH:
-
-      if (pose.dist > 0.1)
-      {
-        visited_counter[state]++;
-
-        pose.dist = 0.0;
-        state = INIT;
-      }
-      break;
-
-    case SEVENTH:
-      visited_counter[state]++;
-
-      right = true;
-      pose.dist = 0.0;
-      state = INIT;
-      break;
-
-    default:
-      break;
+        usleep(2000);
     }
-    usleep(2000);
-  }
+    mixer.setVelocity(0.0);
 }
 
 void BPlan41::terminate()
 { //
-  if (logfile != nullptr)
-    fclose(logfile);
-  logfile = nullptr;
+    mixer.setVelocity(0.0);
+    // servo.setServo(1, false, 0.0, 0.0);
+    if (logfile != nullptr)
+        fclose(logfile);
+    logfile = nullptr;
 }
 
 void BPlan41::toLog(const char *message)
 {
-  UTime t("now");
-  if (logfile != nullptr)
-  {
-    fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
-            oldstate,
-            message);
-  }
-  if (toConsole)
-  {
-    printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
-           oldstate,
-           message);
-  }
+    UTime t("now");
+    if (logfile != nullptr)
+    {
+        fprintf(logfile, "%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
+                oldstate,
+                message);
+    }
+    if (toConsole)
+    {
+        printf("%lu.%04ld %d %% %s\n", t.getSec(), t.getMicrosec() / 100,
+               oldstate,
+               message);
+    }
 }
