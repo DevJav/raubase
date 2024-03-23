@@ -46,7 +46,7 @@ public:
     bool detectIntersection();
     void followLine(bool move_right, float margin);
     void turnOnItself(float target_angle);
-    void stopMovement();
+    void stopMovement(int wait_time);
 
 private:
     /**
@@ -61,16 +61,18 @@ private:
     FILE *logfile = nullptr;
     bool setupDone = false;
 
-    // parameters
-    float threshold_distance_to_start_detection;
+    // general parameters
     float minimum_line_width;
     float default_follow_line_margin{0.0};
+    float follow_line_speed;
+    float turn_speed;
+    float threshold_distance_to_start_detection;
+
+    // roundabout parameters
     float avoid_regbot_margin;
     float minimum_distance_to_regbot;
-    float follow_line_speed;
-    float distance_to_roundabout_wait;
+    float distance_to_roundabout;
     float seconds_for_regbot_to_leave;
-    float turn_speed;
 
     // internal variables
     int intersection_detection_counter{0};

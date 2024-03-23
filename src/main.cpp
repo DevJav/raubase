@@ -32,12 +32,6 @@
 #include "cmixer.h"
 #include "sgpiod.h"
 #include "astatemachine.h"
-#include "bplan20.h"
-#include "bplan21.h"
-#include "bplan40.h"
-// #include "bplan41.h"
-#include "bplan100.h"
-#include "bplan101.h"
 
 int main(int argc, char **argv)
 { // prepare all modules and start data flow
@@ -50,12 +44,6 @@ int main(int argc, char **argv)
     gpio.setPin(16, 1);
     // run the planned missions
     state_machine.run();
-    plan20.run();
-    plan21.run();
-    plan40.run();
-    // plan41.run();
-    plan100.run();
-    plan101.run();
     //
     mixer.setVelocity(0.0);
     mixer.setTurnrate(0.0);
