@@ -75,6 +75,9 @@ void AStateMachine::setup()
     avoid_regbot_margin = strtof(ini["state_machine"]["avoid_regbot_margin"].c_str(), nullptr);
     minimum_distance_to_regbot = strtof(ini["state_machine"]["minimum_distance_to_regbot"].c_str(), nullptr);
     follow_line_speed = strtof(ini["state_machine"]["follow_line_speed"].c_str(), nullptr);
+    distance_to_roundabout_wait = strtof(ini["state_machine"]["distance_to_roundabout_wait"].c_str(), nullptr);
+    turn_speed = strtof(ini["state_machine"]["turn_speed"].c_str(), nullptr);
+    seconds_for_regbot_to_leave = strtof(ini["state_machine"]["seconds_for_regbot_to_leave"].c_str(), nullptr);
 
     setupDone = true;
 }
@@ -98,7 +101,7 @@ enum states
 
 enum roundabout_states
 {
-    ROUNDABOUT_GO_TO_WAITING_LINE,
+    ROUNDABOUT_TURN_TO_WAIT,
     ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE,
     ROUNDABOUT_WAIT_FOR_REGBOT_TO_GO,
     ROUNDABOUT_ENTER_ROUNDABOUT,
@@ -143,11 +146,18 @@ void AStateMachine::turnOnItself(float target_angle)
     std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees" << std::endl;
     pose.resetPose();
     mixer.setVelocity(0.0);
-    mixer.setDesiredHeading(target_angle);
-    while (pose.turned < target_angle)
+    // mixer.setTurnrate(0.2);
+    // mixer.setDesiredHeading(target_angle);
+    // while (pose.turned < target_angle)
+    // {
+    //     usleep(2000);
+    // }
+    while (pose.h < target_angle)
     {
+        mixer.setTurnrate(turn_speed);
         usleep(2000);
     }
+    mixer.setTurnrate(0.0);
     std::cout << "Finished turning" << std::endl;
     usleep(1000000);
 }
@@ -170,7 +180,7 @@ void AStateMachine::run()
     //
 
     states state = START_TO_FIRST_INTERSECTION;
-    roundabout_states enter_roundabout_state = ROUNDABOUT_GO_TO_WAITING_LINE;
+    roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
 
     bool finished = false;
     bool lost = false;
@@ -212,7 +222,7 @@ void AStateMachine::run()
                 followLine(FOLLOW_LEFT, avoid_regbot_margin);
                 just_entered_new_state = false;
             }
-            if (intersection_detected)
+            if (pose.dist > distance_to_roundabout_wait)
             {
                 state = ROUNDABOUT;
                 pose.dist = 0.0;
@@ -228,23 +238,13 @@ void AStateMachine::run()
             // Girar hacia la derecha y avanzar para entrar al pasillito contrario a la rotonda
             switch (enter_roundabout_state)
             {
-            case ROUNDABOUT_GO_TO_WAITING_LINE:
+            case ROUNDABOUT_TURN_TO_WAIT:
                 if (just_entered_new_state)
                 {
-                    std::cout << "Enter roundabout: go to waiting line" << std::endl;
-                    turnOnItself(-M_PI / 2);
-                    followLine(FOLLOW_RIGHT);
-                    just_entered_new_state = false;
-                }
-                if (!isLineDetected())
-                {
-                    std::cout << "Lost line, turning 180 degrees" << std::endl;
-                    stopMovement();
-                    turnOnItself(-M_PI);
-                    enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
-                    pose.dist = 0.0;
-                    intersection_detected = false;
+                    std::cout << "Enter roundabout: turn to wait" << std::endl;
+                    turnOnItself(M_PI / 2);
                     just_entered_new_state = true;
+                    enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
                 }
                 break;
 
@@ -260,6 +260,7 @@ void AStateMachine::run()
                     pose.dist = 0.0;
                     intersection_detected = false;
                     just_entered_new_state = true;
+                    t.now();
                 }
                 break;
 
@@ -269,7 +270,7 @@ void AStateMachine::run()
                     std::cout << "Enter roundabout: wait for regbot to go" << std::endl;
                     just_entered_new_state = false;
                 }
-                if (dist.dist[0] > minimum_distance_to_regbot)
+                if (t.getTimePassed() > seconds_for_regbot_to_leave)
                 {
                     enter_roundabout_state = ROUNDABOUT_ENTER_ROUNDABOUT;
                     pose.dist = 0.0;
@@ -282,24 +283,16 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "Enter roundabout: enter roundabout" << std::endl;
-                    followLine(FOLLOW_LEFT);
-                    second_time_line_detected = false;
+                    mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                 }
-                if (intersection_detected && !second_time_line_detected) // ignore the first line detection
+                if (isLineDetected())
                 {
-                    second_time_line_detected = true;
-                    pose.dist = 0.0;
-                    intersection_detected = false;
-                }
-                else if (intersection_detected && second_time_line_detected)
-                {
-                    stopMovement();
-                    turnOnItself(M_PI / 2);
                     enter_roundabout_state = ROUNDABOUT_FOLLOW_LINE;
                     pose.dist = 0.0;
                     intersection_detected = false;
                     just_entered_new_state = true;
+                    stopMovement();
                 }
                 break;
 
@@ -307,7 +300,7 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "Enter roundabout: follow line" << std::endl;
-                    followLine(FOLLOW_LEFT);
+                    followLine(FOLLOW_RIGHT);
                     just_entered_new_state = false;
                 }
                 if (intersection_detected)

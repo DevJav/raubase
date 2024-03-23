@@ -68,6 +68,9 @@ private:
     float avoid_regbot_margin;
     float minimum_distance_to_regbot;
     float follow_line_speed;
+    float distance_to_roundabout_wait;
+    float seconds_for_regbot_to_leave;
+    float turn_speed;
 
     // internal variables
     int intersection_detection_counter{0};
