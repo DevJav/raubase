@@ -146,7 +146,7 @@ void AStateMachine::followLine(bool move_right, float margin = 0.0)
 
 void AStateMachine::turnOnItself(float target_angle)
 {
-    std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees" << std::endl;
+    std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees with turn rate " << turn_speed << std::endl;
     pose.resetPose();
     mixer.setVelocity(0.0);
     while (pose.h < target_angle)
@@ -183,8 +183,6 @@ void AStateMachine::run()
     bool lost = false;
     bool just_entered_new_state = true;
     bool intersection_detected = false;
-
-    bool second_time_line_detected = false; // to ignore the first line detection when entering the roundabout
 
     toLog("Starting loop");
 
@@ -316,15 +314,15 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[Enter roundabout] exit roundabout" << std::endl;
-                    stopMovement();
-                    turnOnItself(M_PI);
+                    stopMovement(1000);
+                    turnOnItself(M_PI - 0.02); // it goes to -3.13 before reading 3.14
                     mixer.setVelocity(follow_line_speed);
-                    usleep(ONE_SECOND * 2);
                     just_entered_new_state = false;
+                    t.now();
                 }
-                if (intersection_detected)
+                if (isLineDetected() && (t.getTimePassed() > 0.5))
                 {
-                    stopMovement();
+                    stopMovement(ONE_SECOND / 2);
                     state = TO_AXE;
                     pose.dist = 0.0;
                     intersection_detected = false;
@@ -350,7 +348,8 @@ void AStateMachine::run()
                 intersection_detected = false;
                 just_entered_new_state = true;
 
-                stopMovement(); // TODO: maybe let the robot go a bit further?
+                // stopMovement(); // TODO: maybe let the robot go a bit further?
+                // turnOnItself(M_PI / 4);
             }
             break;
 
