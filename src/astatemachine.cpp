@@ -82,6 +82,12 @@ void AStateMachine::setup()
     distance_to_roundabout = strtof(ini["state_machine"]["distance_to_roundabout"].c_str(), nullptr);
     seconds_for_regbot_to_leave = strtof(ini["state_machine"]["seconds_for_regbot_to_leave"].c_str(), nullptr);
 
+    // read axe parameters
+    minimum_distance_to_axe = strtof(ini["state_machine"]["minimum_distance_to_axe"].c_str(), nullptr);
+    free_distance_to_axe = strtof(ini["state_machine"]["free_distance_to_axe"].c_str(), nullptr);
+    axe_cross_speed = strtof(ini["state_machine"]["axe_cross_speed"].c_str(), nullptr);
+    approximation_distance_to_axe = strtof(ini["state_machine"]["approximation_distance_to_axe"].c_str(), nullptr);
+
     setupDone = true;
 }
 
@@ -110,6 +116,14 @@ enum roundabout_states
     ROUNDABOUT_ENTER_ROUNDABOUT,
     ROUNDABOUT_FOLLOW_LINE,
     ROUNDABOUT_EXIT_ROUNDABOUT,
+};
+
+enum axe_states
+{
+    AXE_GET_NEAR_AXE,
+    AXE_WAIT_FOR_AXE,
+    AXE_WAIT_FOR_FREE,
+    AXE_CROSS,
 };
 
 bool AStateMachine::isLineDetected()
@@ -162,6 +176,7 @@ void AStateMachine::turnOnItself(float target_angle)
 void AStateMachine::stopMovement(int wait_time = ONE_SECOND)
 {
     mixer.setVelocity(0.0);
+    mixer.setTurnrate(0.0);
     usleep(wait_time);
 }
 
@@ -178,6 +193,7 @@ void AStateMachine::run()
 
     states state = START_TO_FIRST_INTERSECTION;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
+    axe_states axe_state = AXE_GET_NEAR_AXE;
 
     bool finished = false;
     bool lost = false;
@@ -347,9 +363,6 @@ void AStateMachine::run()
                 pose.dist = 0.0;
                 intersection_detected = false;
                 just_entered_new_state = true;
-
-                // stopMovement(); // TODO: maybe let the robot go a bit further?
-                // turnOnItself(M_PI / 4);
             }
             break;
 
@@ -360,9 +373,47 @@ void AStateMachine::run()
                 std::cout << "Axe" << std::endl;
                 followLine(FOLLOW_LEFT);
                 just_entered_new_state = false;
+                pose.resetPose();
             }
 
             // TODO add axe detection logic
+            switch (axe_state)
+            {
+            case AXE_GET_NEAR_AXE:
+                if (pose.dist > approximation_distance_to_axe)
+                {
+                    std::cout << "[GET_NEAR_AXE] Changing to WAIT_FOR_AXE" << std::endl;
+                    axe_state = AXE_WAIT_FOR_AXE;
+                    stopMovement(ONE_SECOND);
+                }
+            case AXE_WAIT_FOR_AXE:
+                if (dist.dist[0] < minimum_distance_to_axe)
+                {
+                    std::cout << "[WAIT_FOR_AXE] Measured distance: " << dist.dist[0] << std::endl;
+                    std::cout << "[WAIT_FOR_AXE] Changing to WAIT_FOR_FREE" << std::endl;
+                    axe_state = AXE_WAIT_FOR_FREE;
+                }
+                break;
+
+            case AXE_WAIT_FOR_FREE:
+                if (dist.dist[0] > free_distance_to_axe)
+                {
+                    std::cout << "[WAIT_FOR_FREE] Changing to CROSS" << std::endl;
+                    axe_state = AXE_CROSS;
+                    pose.resetPose();
+                    mixer.setVelocity(axe_cross_speed);
+                }
+
+                break;
+
+            case AXE_CROSS:
+                if (pose.dist > 1.0)
+                {
+                    std::cout << "[CROSS] Changing to FOLLOW_LINE" << std::endl;
+                    state = TO_CHRONO;
+                }
+                break;
+            }
 
             if (intersection_detected)
             {

@@ -74,6 +74,12 @@ private:
     float distance_to_roundabout;
     float seconds_for_regbot_to_leave;
 
+    // axes parameters
+    float minimum_distance_to_axe = 0.3;
+    float free_distance_to_axe = 0.6;
+    float axe_cross_speed;
+    float approximation_distance_to_axe;
+
     // internal variables
     int intersection_detection_counter{0};
     int intersection_detection_threshold{5};
