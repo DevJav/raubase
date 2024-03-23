@@ -129,8 +129,10 @@ bool AStateMachine::detectIntersection()
     return false;
 }
 
-void AStateMachine::followLine(bool move_right, float margin = default_follow_line_margin)
+void AStateMachine::followLine(bool move_right, float margin = 0.0)
 {
+    if (margin == 0.0)
+        margin = default_follow_line_margin;
     std::cout << "Following line to the " << (move_right ? "right" : "left") << " with margin " << margin << std::endl;
     mixer.setVelocity(follow_line_speed);
     mixer.setEdgeMode(!move_right, move_right ? -margin : margin);

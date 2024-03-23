@@ -64,7 +64,7 @@ private:
     // parameters
     float threshold_distance_to_start_detection;
     float minimum_line_width;
-    float default_follow_line_margin;
+    float default_follow_line_margin{0.0};
     float avoid_regbot_margin;
     float minimum_distance_to_regbot;
     float follow_line_speed;
