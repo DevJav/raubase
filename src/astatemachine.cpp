@@ -318,13 +318,13 @@ void AStateMachine::run()
                     std::cout << "[Enter roundabout] exit roundabout" << std::endl;
                     stopMovement();
                     turnOnItself(M_PI / 2);
-                    followLine(FOLLOW_LEFT);
+                    mixer.setVelocity(follow_line_speed);
+                    usleep(ONE_SECOND);
                     just_entered_new_state = false;
                 }
                 if (intersection_detected)
                 {
                     stopMovement();
-                    turnOnItself(M_PI / 2);
                     state = TO_AXE;
                     pose.dist = 0.0;
                     intersection_detected = false;
