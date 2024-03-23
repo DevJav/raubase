@@ -81,37 +81,46 @@ void BPlan21::run()
   UTime t;
   bool finished = false;
   bool lost = false;
+  bool first_time = true;
   state = 10;
   oldstate = state;
   //
   toLog("Plan21 started");
   int turns = 0;
+  pose.resetPose();
   //
   while (not finished and not lost and not service.stop)
   { // run a square with 4 90 deg turns - CCV
     switch (state)
     {
       case 10:
-        if (pose.dist >= 1.0 or turns == 0)
+        if (pose.dist < 0.1 && first_time == true){
+            mixer.setVelocity(0.4);
+            first_time = false;
+        }
+        else if (pose.dist >= 0.1)
         { // done, and then
-          if (turns >= 4)
-          {
-            finished = true;
-            mixer.setVelocity(0);
-            mixer.setTurnrate(0);
-            break;
-          }
+          
+          mixer.setVelocity(0);
+          mixer.setTurnrate(0);
+           
           toLog("now turn to -pi/2 rad (30deg)");
           // reset turned angle and distance
           pose.resetPose();
-          mixer.setVelocity(0.3);
-          mixer.setDesiredHeading(M_PI/2);
+
           t.now();
-          turns++;
+          first_time = true;
+          state = 20;
         }
-        else if (t.getTimePassed() > 10)
-          lost = true;
         break;
+        case 20:
+            if (first_time == true){
+                first_time = false;
+                mixer.setTurnrate(0.8);
+            }
+            if(pose.h > M_PI / 2)
+                finished = true;
+            break;
       default:
         toLog("Unknown state");
         lost = true;
