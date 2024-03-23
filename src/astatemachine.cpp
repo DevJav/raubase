@@ -386,6 +386,7 @@ void AStateMachine::run()
                     axe_state = AXE_WAIT_FOR_AXE;
                     stopMovement(ONE_SECOND);
                 }
+                break;
             case AXE_WAIT_FOR_AXE:
                 if (dist.dist[0] < minimum_distance_to_axe)
                 {
