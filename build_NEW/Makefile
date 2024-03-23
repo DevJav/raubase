@@ -142,6 +142,33 @@ raubase/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/raubase.dir/build.make CMakeFiles/raubase.dir/build
 .PHONY : raubase/fast
 
+src/astatemachine.o: src/astatemachine.cpp.o
+
+.PHONY : src/astatemachine.o
+
+# target to build an object file
+src/astatemachine.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/raubase.dir/build.make CMakeFiles/raubase.dir/src/astatemachine.cpp.o
+.PHONY : src/astatemachine.cpp.o
+
+src/astatemachine.i: src/astatemachine.cpp.i
+
+.PHONY : src/astatemachine.i
+
+# target to preprocess a source file
+src/astatemachine.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/raubase.dir/build.make CMakeFiles/raubase.dir/src/astatemachine.cpp.i
+.PHONY : src/astatemachine.cpp.i
+
+src/astatemachine.s: src/astatemachine.cpp.s
+
+.PHONY : src/astatemachine.s
+
+# target to generate assembly for a file
+src/astatemachine.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/raubase.dir/build.make CMakeFiles/raubase.dir/src/astatemachine.cpp.s
+.PHONY : src/astatemachine.cpp.s
+
 src/bplan100.o: src/bplan100.cpp.o
 
 .PHONY : src/bplan100.o
@@ -934,6 +961,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... raubase"
+	@echo "... src/astatemachine.o"
+	@echo "... src/astatemachine.i"
+	@echo "... src/astatemachine.s"
 	@echo "... src/bplan100.o"
 	@echo "... src/bplan100.i"
 	@echo "... src/bplan100.s"
