@@ -21,6 +21,7 @@
  #* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  #* THE SOFTWARE. */
 
+
 #include <stdio.h>
 #include <signal.h>
 #include "CLI/CLI.hpp"
@@ -33,7 +34,6 @@
 #include "cservo.h"
 #include "cedge.h"
 #include "medge.h"
-#include "line_follower.h"
 #include "mpose.h"
 #include "maruco.h"
 #include "scam.h"
@@ -61,13 +61,13 @@ void signal_callback_handler(int signum)
   exit(signum);
 }
 
-bool UService::setup(int argc, char **argv)
-{                                           // Interrupt signal handler for most common signals
-  signal(SIGINT, signal_callback_handler);  // 2 normal ctrl-C
-                                            //   signal(SIGKILL, signal_callback_handler); // 9
+bool UService::setup(int argc,char **argv)
+{ // Interrupt signal handler for most common signals
+  signal(SIGINT, signal_callback_handler); // 2 normal ctrl-C
+//   signal(SIGKILL, signal_callback_handler); // 9
   signal(SIGQUIT, signal_callback_handler); // 3
-  signal(SIGHUP, signal_callback_handler);  // 1
-  signal(SIGPWR, signal_callback_handler);  // 30
+  signal(SIGHUP, signal_callback_handler); // 1
+  signal(SIGPWR, signal_callback_handler); // 30
   signal(SIGTERM, signal_callback_handler); // 15 (pkill default)
   //
   bool teensyConnect = true;
@@ -97,7 +97,7 @@ bool UService::setup(int argc, char **argv)
   float testSec = 0.0;
   cli.add_option("-t,--time", testSec, "Open all sensors for some time (seconds)");
   // rename feature
-  int regbotNumber{-1};
+  int  regbotNumber{-1};
   cli.add_option("-n,--number", regbotNumber, "Set robot number to Regbot part [0..150]");
   // print 4x4_100 ArUco code
   int arucoID = -1;
@@ -143,7 +143,7 @@ bool UService::setup(int argc, char **argv)
     ini["service"]["logpath"] = "log_%d/";
     ini["service"]["; The '%d' will be replaced with date and timestamp (Must end with a '/')."] = "";
   }
-  teensyConnect = not(camImg or camCal or ini["service"]["use_robot_hardware"] == "false");
+  teensyConnect = not (camImg or camCal or ini["service"]["use_robot_hardware"] == "false");
   //
   if (arucoID >= 0)
   { // just save an image with an ArUco code
@@ -207,7 +207,6 @@ bool UService::setup(int argc, char **argv)
     joyLogi.setup();
     cam.setup();
     aruco.setup();
-    line_follower.setup();
     setupComplete = true;
     usleep(2000);
     //
@@ -263,14 +262,14 @@ bool UService::setup(int argc, char **argv)
        dist.inCalibration or
        imu.inCalibration or
        testSec > 0.05) and
-      not theEnd)
+       not theEnd)
   { // wait until finished, then terminate
     UTime t("now");
     while (medge.sensorCalibrateBlack or
-           medge.sensorCalibrateWhite or
-           (teensy1.saveRegbotNumber >= 0 and teensy1.saveRegbotNumber != state.idx) or
-           dist.inCalibration or
-           imu.inCalibration or t.getTimePassed() < testSec)
+      medge.sensorCalibrateWhite or
+      (teensy1.saveRegbotNumber >= 0 and teensy1.saveRegbotNumber != state.idx) or
+      dist.inCalibration or
+      imu.inCalibration or t.getTimePassed() < testSec)
     {
       printf("# Service is waiting for a specified action to finish\n");
       sleep(1);
@@ -280,27 +279,15 @@ bool UService::setup(int argc, char **argv)
   return theEnd;
 }
 
-bool UService::decode(const char *msg, UTime &msgTime)
+bool UService::decode(const char* msg, UTime& msgTime)
 { // decode messages from Teensy
   bool used = true;
-  if (state.decode(msg, msgTime))
-  {
-  }
-  else if (encoder.decode(msg, msgTime))
-  {
-  }
-  else if (imu.decode(msg, msgTime))
-  {
-  }
-  else if (servo.decode(msg, msgTime))
-  {
-  }
-  else if (sedge.decode(msg, msgTime))
-  {
-  }
-  else if (dist.decode(msg, msgTime))
-  {
-  }
+  if      (state.decode(msg, msgTime)) {}
+  else if (encoder.decode(msg, msgTime)) {}
+  else if (imu.decode(msg, msgTime)) {}
+  else if (servo.decode(msg, msgTime)) {}
+  else if (sedge.decode(msg, msgTime)) {}
+  else if (dist.decode(msg, msgTime)) {}
   //
   // add other Teensy data users here
   //
@@ -309,11 +296,12 @@ bool UService::decode(const char *msg, UTime &msgTime)
   return used;
 }
 
-void UService::stopNow(const char *who)
+void UService::stopNow(const char * who)
 { // request a terminate and exit
   printf("# UService:: %s say stop now\n", who);
   stopNowRequest = true;
 }
+
 
 void UService::terminate()
 { // Terminate modules (especially threads and log files)
@@ -324,7 +312,6 @@ void UService::terminate()
   stop = true; // stop all threads, when finished current activity
   //
   usleep(100000);
-  line_follower.terminate();
   joyLogi.terminate();
   encoder.terminate();
   pose.terminate();
@@ -350,7 +337,7 @@ void UService::terminate()
     ini["ini"]["; set 'saveConfig' to 'false' to avoid autosave"] = "";
     ini["ini"]["saveConfig"] = "true";
   }
-  std::string &shouldSave = ini["ini"]["saveConfig"];
+  std::string& shouldSave = ini["ini"]["saveConfig"];
   if (shouldSave != "false")
   { // write any changes ini-file values (and structures)
     ini["ini"]["version"] = getVersionString();
@@ -365,7 +352,7 @@ std::string UService::getVersionString()
   std::string ver = REV;
   int n1 = ver.find(' ', 10);
   int n2 = ver.rfind("Z ");
-  std::string part = ver.substr(n1, n2 - n1);
+  std::string part = ver.substr(n1, n2-n1);
   return part;
 }
 

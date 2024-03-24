@@ -29,18 +29,12 @@ set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-pthread")
 
 
 add_executable(raubase
-      src/bplan20.cpp
-      src/bplan21.cpp
-      src/bplan40.cpp
-      src/bplan41.cpp
-      src/bplan100.cpp
-      src/bplan101.cpp
+      src/astatemachine.cpp
       src/cedge.cpp
       src/cheading.cpp
       src/cmixer.cpp
       src/cmotor.cpp
       src/cservo.cpp
-      src/line_follower.cpp
       src/main.cpp
       src/maruco.cpp
       src/medge.cpp

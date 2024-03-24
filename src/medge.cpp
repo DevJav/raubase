@@ -1,25 +1,25 @@
-/*
- *
+/*  
+ * 
  * Copyright © 2023 DTU,
  * Author:
  * Christian Andersen jcan@dtu.dk
- *
+ * 
  * The MIT License (MIT)  https://mit-license.org/
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the “Software”), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
+ * and associated documentation files (the “Software”), to deal in the Software without restriction, 
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute, 
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software 
  * is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies
+ * 
+ * The above copyright notice and this permission notice shall be included in all copies 
  * or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * 
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
  * THE SOFTWARE. */
 
 #include <string>
@@ -35,27 +35,28 @@
 // create value
 MEdge medge;
 
+
 void MEdge::setup()
 { // ensure there is default values in ini-file
   if (not ini.has("edge") or not ini["edge"].has("calibWhite"))
-  {                                                                        // no data yet, so generate some default values
+  { // no data yet, so generate some default values
     ini["edge"]["calibWhite"] = "1000 1000 1000 1000 1000 1000 1000 1000"; // A/D value
-    ini["edge"]["calibBlack"] = "0 0 0 0 0 0 0 0";                         // A/D value
-    ini["edge"]["whiteThreshold"] = "700";                                 // of 1000
-    ini["edge"]["sensorWidth"] = "0.12";                                   // m
-    ini["edge"]["log"] = "true";                                           // log edge detection items
-    ini["edge"]["logNorm"] = "true";                                       // log edge detection items
+    ini["edge"]["calibBlack"] = "0 0 0 0 0 0 0 0"; // A/D value
+    ini["edge"]["whiteThreshold"] = "700"; // of 1000
+    ini["edge"]["sensorWidth"] = "0.12"; // m
+    ini["edge"]["log"] = "true"; // log edge detection items
+    ini["edge"]["logNorm"] = "true"; // log edge detection items
   }
   // get values from ini-file
-  const char *p1 = ini["edge"]["calibWhite"].c_str();
+  const char * p1 = ini["edge"]["calibWhite"].c_str();
   // white calibration value
   for (int i = 0; i < 8; i++)
-    calibWhite[i] = strtol(p1, (char **)&p1, 10);
+    calibWhite[i] = strtol(p1, (char**)&p1,10);
   // black calibration value
   p1 = ini["edge"]["calibBlack"].c_str();
   for (int i = 0; i < 8; i++)
   {
-    calibBlack[i] = strtol(p1, (char **)&p1, 10);
+    calibBlack[i] = strtol(p1, (char**)&p1,10);
     calibrationValid = (calibWhite[i] - calibBlack[i]) > 10;
   }
   if (not calibrationValid)
@@ -117,6 +118,7 @@ void MEdge::setup()
   th1 = new std::thread(runObj, this);
 }
 
+
 void MEdge::terminate()
 { // wait for thread to finish
   if (th1 != nullptr)
@@ -129,7 +131,7 @@ void MEdge::findEdge()
   { // invalid calibration values
     leftEdge = 0.0;
     rightEdge = 0.0;
-    //     crossingValid = false;
+//     crossingValid = false;
     edgeValid = false;
     return;
   }
@@ -166,15 +168,15 @@ void MEdge::findEdge()
     {
       for (l = 0; l < 7; l++)
       {
-        if (ls[l + 1] > whiteThresholdPm)
+        if (ls[l+1] > whiteThresholdPm)
           break;
       }
       // distance to threshold
       eeL = whiteThresholdPm - ls[l];
       // change from sensor l to l+1
-      ddL = ls[l + 1] - ls[l];
+      ddL = ls[l+1] - ls[l];
       if (ddL > 0)
-        leftEdge = l + float(eeL) / float(ddL);
+        leftEdge = l + float(eeL)/float(ddL);
     }
     //
     // right edge
@@ -184,15 +186,15 @@ void MEdge::findEdge()
     {
       for (r = 7; r > 0; r--)
       {
-        if (ls[r - 1] > whiteThresholdPm)
+        if (ls[r-1] > whiteThresholdPm)
           break;
       }
       // distance to threshold
       eeR = whiteThresholdPm - ls[r];
       // change from sensor r to r-1
-      ddR = ls[r - 1] - ls[r];
+      ddR = ls[r-1] - ls[r];
       if (ddR > 0)
-        rightEdge = r - float(eeR) / float(ddR);
+        rightEdge = r - float(eeR)/float(ddR);
     }
   }
   else
@@ -202,8 +204,8 @@ void MEdge::findEdge()
   }
   //
   // scale to meters (positive is left)
-  leftEdge = -((leftEdge * sensorWidth / 7.0) - sensorWidth / 2.0);
-  rightEdge = -((rightEdge * sensorWidth / 7.0) - sensorWidth / 2.0);
+  leftEdge = -((leftEdge * sensorWidth / 7.0 ) - sensorWidth/2.0);
+  rightEdge = -((rightEdge * sensorWidth / 7.0 ) - sensorWidth/2.0);
   //
   width = leftEdge - rightEdge;
   // finished - log/print as needed
@@ -216,12 +218,12 @@ void MEdge::run()
   while (not service.stop)
   {
     if ((sensorCalibrateWhite or sensorCalibrateBlack) and
-        sedge.updateCnt > 100)
+      sedge.updateCnt > 100      )
     { // start summing calibration values
       if (sensorCalibrateCount == 0)
       { // start collect values now
         sensorCalibrateCount = sensorCalibrateSamples;
-        for (int i = 0; i < 8; i++)
+        for (int i=0; i < 8; i++)
           sensorCalibrateValue[i] = 0;
       }
     }
@@ -231,7 +233,7 @@ void MEdge::run()
       lineUpdateCnt = sedge.updateCnt;
       loop++;
       // calculate edge position
-      if (not(sensorCalibrateWhite or sensorCalibrateBlack))
+      if (not (sensorCalibrateWhite or sensorCalibrateBlack))
       { // regular update
         findEdge();
         // inform users of update
@@ -257,14 +259,14 @@ void MEdge::run()
           const int MSL = 400;
           char s[MSL];
           snprintf(s, MSL, "%d %d %d %d %d %d %d %d",
-                   sensorCalibrateValue[0] / sensorCalibrateSamples,
-                   sensorCalibrateValue[1] / sensorCalibrateSamples,
-                   sensorCalibrateValue[2] / sensorCalibrateSamples,
-                   sensorCalibrateValue[3] / sensorCalibrateSamples,
-                   sensorCalibrateValue[4] / sensorCalibrateSamples,
-                   sensorCalibrateValue[5] / sensorCalibrateSamples,
-                   sensorCalibrateValue[6] / sensorCalibrateSamples,
-                   sensorCalibrateValue[7] / sensorCalibrateSamples);
+              sensorCalibrateValue[0] / sensorCalibrateSamples,
+              sensorCalibrateValue[1] / sensorCalibrateSamples,
+              sensorCalibrateValue[2] / sensorCalibrateSamples,
+              sensorCalibrateValue[3] / sensorCalibrateSamples,
+              sensorCalibrateValue[4] / sensorCalibrateSamples,
+              sensorCalibrateValue[5] / sensorCalibrateSamples,
+              sensorCalibrateValue[6] / sensorCalibrateSamples,
+              sensorCalibrateValue[7] / sensorCalibrateSamples);
           if (sensorCalibrateWhite)
           { // save average as white value
             sensorCalibrateWhite = false;
@@ -294,27 +296,29 @@ void MEdge::run()
   }
 }
 
+
 void MEdge::toLog()
 {
   if (not service.stop)
   {
     if (logfile != nullptr)
     { // log_line sensor detection
-      fprintf(logfile, "%lu.%04ld %d %.3f %.3f %.4f\n", updTime.getSec(), updTime.getMicrosec() / 100,
+      fprintf(logfile, "%lu.%04ld %d %.3f %.3f %.4f\n", updTime.getSec(), updTime.getMicrosec()/100,
               edgeValid, leftEdge, rightEdge, leftEdge - rightEdge);
     }
     if (toConsole)
     { // debug print to console
-      printf("%lu.%04ld %d %.4f %.4f %.4f\n", updTime.getSec(), updTime.getMicrosec() / 100,
-             edgeValid, leftEdge, rightEdge, leftEdge - rightEdge);
+      printf("%lu.%04ld %d %.4f %.4f %.4f\n", updTime.getSec(), updTime.getMicrosec()/100,
+              edgeValid, leftEdge, rightEdge, leftEdge - rightEdge);
     }
     if (logfileNorm != nullptr)
     {
       fprintf(logfileNorm, "%lu.%04ld %d %d %d %d %d %d %d %d  %.4f\n",
-              sedge.updTime.getSec(),
-              sedge.updTime.getMicrosec() / 100,
+             sedge.updTime.getSec(),
+             sedge.updTime.getMicrosec()/100,
               ls[0], ls[1], ls[2], ls[3],
-              ls[4], ls[5], ls[6], ls[7], leftEdge - rightEdge);
+              ls[4], ls[5], ls[6], ls[7], leftEdge - rightEdge
+      );
     }
   }
 }

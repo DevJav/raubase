@@ -28,3 +28,4 @@ package-lock.json
 
 # Ignore user-specific files
 .vscode/
+*.jpg

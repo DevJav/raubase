@@ -31,15 +31,9 @@
 #include "uservice.h"
 #include "cmixer.h"
 #include "sgpiod.h"
-#include "bplan20.h"
-#include "bplan21.h"
-#include "bplan40.h"
-#include "bplan41.h"
-#include "bplan100.h"
-#include "bplan101.h"
+#include "astatemachine.h"
 
-
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 { // prepare all modules and start data flow
   // but also handle command-line options
   service.setup(argc, argv);
@@ -49,12 +43,7 @@ int main (int argc, char **argv)
     // turn on LED on port 16
     gpio.setPin(16, 1);
     // run the planned missions
-    plan20.run();
-    plan21.run();
-    plan40.run();
-    plan41.run();
-    plan100.run();
-    plan101.run();
+    state_machine.run();
     //
     mixer.setVelocity(0.0);
     mixer.setTurnrate(0.0);
@@ -66,4 +55,3 @@ int main (int argc, char **argv)
   service.terminate();
   return service.theEnd;
 }
-
