@@ -92,42 +92,153 @@ void BPlan21::run()
     switch (state)
     {
       case 10:
-        if (pose.dist >= 1.0 or turns == 0)
-        { // done, and then
-          if (turns >= 4)
-          {
-            finished = true;
-            mixer.setVelocity(0);
-            mixer.setTurnrate(0);
-            break;
-          }
-          toLog("now turn to -pi/2 rad (30deg)");
+        if (turns == 0){
+          toLog("1 - advancing");
           // reset turned angle and distance
-          pose.resetPose();
-          mixer.setVelocity(0.0);
-          mixer.setTurnrate(0.4);
-          t.now();
-          turns++;
-        }
-        else if (turns == 1){
-          toLog("now turn to -pi rad (180deg)");
-          // reset turned angle and distance
-          pose.resetPose();
-          mixer.setVelocity(0.3);
           mixer.setTurnrate(0.0);
-          t.now();
-          turns++;
-        }
-        else if (turns == 2 && pose.dist >= 0.5){
-          toLog("now turn to -3pi/2 rad (270deg)");
-          // reset turned angle and distance
           pose.resetPose();
-          mixer.setVelocity(0.0);
-          mixer.setTurnrate(0.4);
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);
           t.now();
           turns++;
         }
-        else if (t.getTimePassed() > 10)
+        if (turns == 1 && pose.dist >= 0.5)
+        { // done, and then
+
+          toLog("2 - now turn to pi / 2");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 2 && pose.h > M_PI / 2){
+          toLog("3 - advancing");
+          // reset turned angle and distance
+          mixer.setTurnrate(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);;
+          t.now();
+          turns++;
+        }
+        else if (turns == 3 && pose.dist > 0.5){
+          toLog("4 - turning");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 4 && pose.h > M_PI / 2){
+          toLog("3 - advancing");
+          // reset turned angle and distance
+          mixer.setTurnrate(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);;
+          t.now();
+          turns++;
+        }
+        else if (turns == 5 && pose.dist > 0.5){
+          toLog("4 - turning");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 6 && pose.h > M_PI / 2){
+          toLog("3 - advancing");
+          // reset turned angle and distance
+          mixer.setTurnrate(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);;
+          t.now();
+          turns++;
+        }
+        else if (turns == 7 && pose.dist > 0.5){
+          toLog("4 - turning");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 8 && pose.h > M_PI / 2){
+          toLog("3 - advancing");
+          // reset turned angle and distance
+          mixer.setTurnrate(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);;
+          t.now();
+          turns++;
+        }
+        else if (turns == 9 && pose.dist > 0.5){
+          toLog("4 - turning");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 10 && pose.h > M_PI / 2){
+          toLog("3 - advancing");
+          // reset turned angle and distance
+          mixer.setTurnrate(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setVelocity(0.4);
+          // usleep(200000);;
+          t.now();
+          turns++;
+        }
+        else if (turns == 11 && pose.dist > 0.5){
+          toLog("4 - turning");
+          // reset turned angle and distance
+          mixer.setVelocity(0.0);
+          pose.resetPose();
+          usleep(20000);
+          // usleep(200000);
+          mixer.setTurnrate(0.6);
+          // usleep(200000);
+          t.now();
+          turns++;
+        }
+        else if (turns == 12  && pose.h > M_PI / 2 )
           lost = true;
         
         break;
