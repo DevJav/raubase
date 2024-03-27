@@ -94,6 +94,12 @@ void AStateMachine::setup()
     chrono_distance_2 = strtof(ini["state_machine"]["chrono_distance_2"].c_str(), nullptr);
     chrono_distance_3 = strtof(ini["state_machine"]["chrono_distance_3"].c_str(), nullptr);
 
+    const char *calib_wood = ini["edge"]["calibwood"].c_str();
+    for (int i = 0; i < 8; i++)
+    {
+        calibWood[i] = strtol(calib_wood, (char **)&calib_wood, 10);
+    }
+
     setupDone = true;
 }
 
@@ -252,9 +258,10 @@ void AStateMachine::run()
     //
 
     states state = START_TO_FIRST_INTERSECTION;
+    // states state = AXE;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
     axe_states axe_state = AXE_GET_NEAR_AXE;
-    to_chrono_states to_chrono_state = TO_CHRONO_1;
+    // to_chrono_states to_chrono_state = TO_CHRONO_1;
 
     bool finished = false;
     bool lost = false;
@@ -374,7 +381,7 @@ void AStateMachine::run()
                     just_entered_new_state = false;
                 }
                 // if (isLineDetected())
-                if (pose.dist > 0.7)
+                if (pose.dist > 1.0)
                 {
                     enter_roundabout_state = ROUNDABOUT_FOLLOW_LINE;
                     resetPose();
@@ -490,6 +497,7 @@ void AStateMachine::run()
                 {
                     std::cout << "[CROSS] Changing to FOLLOW_LINE" << std::endl;
                     axe_state = AXE_TO_INTERSECTION;
+                    medge.updateCalibrationBlack(calibWood);
 
                     followLine(FOLLOW_RIGHT);
                 }
@@ -500,7 +508,9 @@ void AStateMachine::run()
                 if (intersection_detected)
                 {
                     std::cout << "[TO_INTERSECTION] Turning" << std::endl;
-                    turnOnItself(-M_PI / 2);
+                    turnOnItself(-M_PI / 2 + 0.2);
+                    mixer.setVelocity(follow_line_speed);
+                    usleep(ONE_SECOND * 2);
                     state = TO_CHRONO;
                     resetPose();
                     intersection_detected = false;
@@ -511,64 +521,80 @@ void AStateMachine::run()
             break;
 
         case TO_CHRONO:
-            switch (to_chrono_state)
+            // switch (to_chrono_state)
+            // {
+            // case TO_CHRONO_1:
+            //     if (just_entered_new_state)
+            //     {
+            //         std::cout << "To chrono 1" << std::endl;
+            //         resetPose();
+            //         mixer.setVelocity(follow_line_speed);
+            //         just_entered_new_state = false;
+            //     }
+            //     if (pose.dist > chrono_distance_1)
+            //     {
+            //         turnOnItself(-M_PI / 2);
+            //         to_chrono_state = TO_CHRONO_2;
+            //         resetPose();
+            //         intersection_detected = false;
+            //         just_entered_new_state = true;
+            //     }
+            //     break;
+
+            // case TO_CHRONO_2:
+            //     if (just_entered_new_state)
+            //     {
+            //         std::cout << "To chrono 2" << std::endl;
+            //         resetPose();
+            //         mixer.setVelocity(follow_line_speed);
+            //         just_entered_new_state = false;
+            //     }
+            //     if (pose.dist > chrono_distance_2)
+            //     {
+            //         turnOnItself(-M_PI / 2);
+            //         to_chrono_state = TO_CHRONO_3;
+            //         resetPose();
+            //         intersection_detected = false;
+            //         just_entered_new_state = true;
+            //     }
+            //     break;
+
+            // case TO_CHRONO_3:
+            //     if (just_entered_new_state)
+            //     {
+            //         std::cout << "To chrono 3" << std::endl;
+            //         resetPose();
+            //         mixer.setVelocity(follow_line_speed);
+            //         just_entered_new_state = false;
+            //     }
+            //     if (pose.dist > chrono_distance_3)
+            //     {
+            //         resetPose();
+            //         state = FIND_LINE;
+            //         intersection_detected = false;
+            //         just_entered_new_state = true;
+            //     }
+            //     break;
+
+            // default:
+            //     break;
+            // }
+
+            if (just_entered_new_state)
             {
-            case TO_CHRONO_1:
-                if (just_entered_new_state)
-                {
-                    std::cout << "To chrono 1" << std::endl;
-                    resetPose();
-                    mixer.setVelocity(follow_line_speed);
-                    just_entered_new_state = false;
-                }
-                if (pose.dist > chrono_distance_1)
-                {
-                    turnOnItself(-M_PI / 2);
-                    to_chrono_state = TO_CHRONO_2;
-                    resetPose();
-                    intersection_detected = false;
-                    just_entered_new_state = true;
-                }
-                break;
-
-            case TO_CHRONO_2:
-                if (just_entered_new_state)
-                {
-                    std::cout << "To chrono 2" << std::endl;
-                    resetPose();
-                    mixer.setVelocity(follow_line_speed);
-                    just_entered_new_state = false;
-                }
-                if (pose.dist > chrono_distance_2)
-                {
-                    turnOnItself(-M_PI / 2);
-                    to_chrono_state = TO_CHRONO_3;
-                    resetPose();
-                    intersection_detected = false;
-                    just_entered_new_state = true;
-                }
-                break;
-
-            case TO_CHRONO_3:
-                if (just_entered_new_state)
-                {
-                    std::cout << "To chrono 3" << std::endl;
-                    resetPose();
-                    mixer.setVelocity(follow_line_speed);
-                    just_entered_new_state = false;
-                }
-                if (pose.dist > chrono_distance_3)
-                {
-                    resetPose();
-                    state = FIND_LINE;
-                    intersection_detected = false;
-                    just_entered_new_state = true;
-                }
-                break;
-
-            default:
-                break;
+                std::cout << "Follow line to chrono" << std::endl;
+                followLine(FOLLOW_RIGHT);
+                just_entered_new_state = false;
             }
+            if (!isLineDetected())
+            {
+                std::cout << "LIne lost. Arrived to chrono" << std::endl;
+                stopMovement();
+                state = FIND_LINE;
+                just_entered_new_state = true;
+            }
+
+            break;
         case FIND_LINE:
             // Seguir recto hasta encontrar la linea
             if (just_entered_new_state)

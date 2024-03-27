@@ -88,6 +88,8 @@ private:
     float chrono_distance_2;
     float chrono_distance_3;
 
+    int calibWood[8];
+
     // internal variables
     int intersection_detection_counter{0};
     int intersection_detection_threshold{5};
