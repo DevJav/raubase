@@ -81,6 +81,7 @@ private:
     float free_distance_to_axe = 0.6;
     float axe_cross_speed;
     float approximation_distance_to_axe;
+    float distance_to_cross_axe;
 
     // internal variables
     int intersection_detection_counter{0};

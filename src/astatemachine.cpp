@@ -87,6 +87,7 @@ void AStateMachine::setup()
     free_distance_to_axe = strtof(ini["state_machine"]["free_distance_to_axe"].c_str(), nullptr);
     axe_cross_speed = strtof(ini["state_machine"]["axe_cross_speed"].c_str(), nullptr);
     approximation_distance_to_axe = strtof(ini["state_machine"]["approximation_distance_to_axe"].c_str(), nullptr);
+    distance_to_cross_axe = strtof(ini["state_machine"]["distance_to_cross_axe"].c_str(), nullptr);
 
     setupDone = true;
 }
@@ -472,7 +473,7 @@ void AStateMachine::run()
                 break;
 
             case AXE_CROSS:
-                if (pose.dist > 0.4)
+                if (pose.dist > distance_to_cross_axe)
                 {
                     std::cout << "[CROSS] Changing to FOLLOW_LINE" << std::endl;
                     axe_state = AXE_TO_INTERSECTION;
