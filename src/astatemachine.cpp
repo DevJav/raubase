@@ -124,6 +124,7 @@ enum axe_states
     AXE_WAIT_FOR_AXE,
     AXE_WAIT_FOR_FREE,
     AXE_CROSS,
+    AXE_TO_INTERSECTION,
 };
 
 bool AStateMachine::isLineDetected()
@@ -161,17 +162,29 @@ void AStateMachine::followLine(bool move_right, float margin = 0.0)
 void AStateMachine::turnOnItself(float target_angle)
 {
     std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees with turn rate " << turn_speed << std::endl;
-    // pose.resetPose();
-    pose.turned = 0;
-    pose.h = 0;
     mixer.setVelocity(0.0);
-    while (pose.h < target_angle)
+    usleep(5000);
+    resetPose();
+    if (target_angle < 0.0)
+    {
+        mixer.setTurnrate(-turn_speed);
+
+        while (pose.h > target_angle)
+        {
+            // std::cout << pose.h << std::endl;
+            usleep(2000);
+        }
+    }
+    else
     {
         mixer.setTurnrate(turn_speed);
-        // std::cout << pose.h << std::endl;
-        usleep(4000);
-    }
 
+        while (pose.h < target_angle)
+        {
+            // std::cout << pose.h << std::endl;
+            usleep(2000);
+        }
+    }
     // mixer.setManualControl(false, 0.0, 0.0);
     mixer.setTurnrate(0.0);
     usleep(20000);
@@ -182,7 +195,6 @@ void AStateMachine::turnOnItself(float target_angle)
 void AStateMachine::turnHeading(float target_angle)
 {
     std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees with turn rate " << turn_speed << std::endl;
-    // pose.resetPose();
     pose.turned = 0;
     pose.h = 0;
     usleep(20000);
@@ -203,8 +215,16 @@ void AStateMachine::turnHeading(float target_angle)
 void AStateMachine::stopMovement(int wait_time = ONE_SECOND)
 {
     mixer.setVelocity(0.0);
+    usleep(20000);
     mixer.setTurnrate(0.0);
+    usleep(20000);
     usleep(wait_time);
+}
+
+void AStateMachine::resetPose()
+{
+    pose.resetPose();
+    usleep(50000);
 }
 
 void AStateMachine::run()
@@ -246,7 +266,7 @@ void AStateMachine::run()
             if (intersection_detected)
             {
                 state = TO_ROUNDABOUT;
-                pose.dist = 0.0;
+                resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
             }
@@ -263,7 +283,7 @@ void AStateMachine::run()
             if (pose.dist > distance_to_roundabout)
             {
                 state = ROUNDABOUT;
-                pose.dist = 0.0;
+                resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
 
@@ -280,11 +300,21 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[Enter roundabout] turn to wait" << std::endl;
-                    turnOnItself(M_PI/2);
+                    turnOnItself(M_PI / 2);
                     // turnHeading(M_PI / 2 + 0.3);
+                    // just_entered_new_state = false;
+
                     just_entered_new_state = true;
                     enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
                 }
+                // if (pose.h > M_PI / 2){
+
+                //     mixer.setTurnrate(0.0);
+                //     pose.resetPose();
+                //     usleep(20000);
+                //     just_entered_new_state = true;
+                //     enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
+                // }
                 break;
 
             case ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE:
@@ -297,7 +327,7 @@ void AStateMachine::run()
                 {
                     std::cout << "Regbot detected!" << std::endl;
                     enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_GO;
-                    pose.dist = 0.0;
+                    resetPose();
                     intersection_detected = false;
                     just_entered_new_state = true;
                     t.now();
@@ -315,7 +345,7 @@ void AStateMachine::run()
                 {
                     std::cout << "Regbot left! Entering roundabout" << std::endl;
                     enter_roundabout_state = ROUNDABOUT_ENTER_ROUNDABOUT;
-                    pose.dist = 0.0;
+                    resetPose();
                     intersection_detected = false;
                     just_entered_new_state = true;
                 }
@@ -325,13 +355,15 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[Enter roundabout] enter roundabout" << std::endl;
+                    resetPose();
                     mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                 }
-                if (isLineDetected())
+                // if (isLineDetected())
+                if (pose.dist > 0.7)
                 {
                     enter_roundabout_state = ROUNDABOUT_FOLLOW_LINE;
-                    pose.dist = 0.0;
+                    resetPose();
                     intersection_detected = false;
                     just_entered_new_state = true;
                     stopMovement(ONE_SECOND / 2);
@@ -342,14 +374,14 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[Enter roundabout] follow line" << std::endl;
-                    mixer.setInModeTurnrate(0.15);
+                    mixer.setInModeTurnrate(0.075);
                     followLine(FOLLOW_RIGHT);
                     just_entered_new_state = false;
                 }
                 if (intersection_detected)
                 {
                     enter_roundabout_state = ROUNDABOUT_EXIT_ROUNDABOUT;
-                    pose.dist = 0.0;
+                    resetPose();
                     intersection_detected = false;
                     just_entered_new_state = true;
                 }
@@ -360,8 +392,8 @@ void AStateMachine::run()
                 {
                     std::cout << "[Enter roundabout] exit roundabout" << std::endl;
                     stopMovement(1000);
-                    turnOnItself(M_PI - 0.02); // it goes to -3.13 before reading 3.14
-                    //turnHeading(M_PI);
+                    turnOnItself(M_PI - M_PI / 6); // it goes to -3.13 before reading 3.14
+                    // turnHeading(M_PI);
                     mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                     t.now();
@@ -370,7 +402,7 @@ void AStateMachine::run()
                 {
                     stopMovement(ONE_SECOND / 2);
                     state = TO_AXE;
-                    pose.dist = 0.0;
+                    resetPose();
                     intersection_detected = false;
                     just_entered_new_state = true;
                 }
@@ -389,10 +421,10 @@ void AStateMachine::run()
             }
             if (intersection_detected)
             {
-                turnOnItself(M_PI / 4 - M_PI / 6);
-                //turnHeading((M_PI / 4 - M_PI / 6)*1.19);
+                turnOnItself(M_PI / 4 - M_PI / 12);
+                // turnHeading((M_PI / 4 - M_PI / 6)*1.19);
                 state = AXE;
-                pose.dist = 0.0;
+                resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
             }
@@ -405,7 +437,6 @@ void AStateMachine::run()
                 std::cout << "Axe" << std::endl;
                 followLine(FOLLOW_LEFT);
                 just_entered_new_state = false;
-                
             }
 
             // TODO add axe detection logic
@@ -434,27 +465,35 @@ void AStateMachine::run()
                     std::cout << "[WAIT_FOR_FREE] Changing to CROSS" << std::endl;
                     axe_state = AXE_CROSS;
                     pose.resetPose();
+                    usleep(2000);
                     mixer.setVelocity(axe_cross_speed);
                 }
 
                 break;
 
             case AXE_CROSS:
-                if (pose.dist > 1.0)
+                if (pose.dist > 0.4)
                 {
                     std::cout << "[CROSS] Changing to FOLLOW_LINE" << std::endl;
-                    state = TO_CHRONO;
+                    axe_state = AXE_TO_INTERSECTION;
+
+                    followLine(FOLLOW_RIGHT);
                 }
                 break;
+
+            case AXE_TO_INTERSECTION:
+
+                if (intersection_detected)
+                {
+                    std::cout << "[TO_INTERSECTION] Turning" << std::endl;
+                    turnOnItself(-M_PI / 2);
+                    state = TO_CHRONO;
+                    resetPose();
+                    intersection_detected = false;
+                    just_entered_new_state = true;
+                }
             }
 
-            if (intersection_detected)
-            {
-                state = TO_CHRONO;
-                pose.dist = 0.0;
-                intersection_detected = false;
-                just_entered_new_state = true;
-            }
             break;
 
         case TO_CHRONO:
@@ -470,7 +509,7 @@ void AStateMachine::run()
                 std::cout << "Lost line" << std::endl;
                 stopMovement();
                 state = FIND_LINE;
-                pose.dist = 0.0;
+                resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
             }
@@ -487,10 +526,11 @@ void AStateMachine::run()
             if (isLineDetected())
             {
                 state = UP_RAMP;
+                usleep(ONE_SECOND / 4);
                 stopMovement();
                 turnOnItself(M_PI / 2);
                 // turnHeading((M_PI/2)*1.19);
-                pose.dist = 0.0;
+                resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
             }

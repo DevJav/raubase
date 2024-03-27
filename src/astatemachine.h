@@ -48,6 +48,7 @@ public:
     void turnOnItself(float target_angle);
     void turnHeading(float target_angle);
     void stopMovement(int wait_time);
+    void resetPose();
 
 private:
     /**
