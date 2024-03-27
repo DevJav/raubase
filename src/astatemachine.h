@@ -83,6 +83,11 @@ private:
     float approximation_distance_to_axe;
     float distance_to_cross_axe;
 
+    // to chrono parameters
+    float chrono_distance_1;
+    float chrono_distance_2;
+    float chrono_distance_3;
+
     // internal variables
     int intersection_detection_counter{0};
     int intersection_detection_threshold{5};
