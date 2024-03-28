@@ -322,6 +322,9 @@ void AStateMachine::run()
                 {
                     std::cout << "[Enter roundabout] turn to wait" << std::endl;
                     turnOnItself(M_PI / 2);
+                    mixer.setVelocity(-0.1);
+                    t.now();
+                    while(t.getTimePassed() < 0.8) usleep(2000);
                     // turnHeading(M_PI / 2 + 0.3);
                     // just_entered_new_state = false;
 
@@ -342,6 +345,7 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[Enter roundabout] wait for regbot to arrive" << std::endl;
+                    stopMovement(2000);
                     just_entered_new_state = false;
                 }
                 if (dist.dist[0] < minimum_distance_to_regbot)
@@ -380,8 +384,8 @@ void AStateMachine::run()
                     mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                 }
-                // if (isLineDetected())
-                if (pose.dist > 1.0)
+                if (isLineDetected() && pose.dist > 0.7)
+                // if (pose.dist > 1.0)
                 {
                     enter_roundabout_state = ROUNDABOUT_FOLLOW_LINE;
                     resetPose();
@@ -508,7 +512,9 @@ void AStateMachine::run()
                 if (intersection_detected)
                 {
                     std::cout << "[TO_INTERSECTION] Turning" << std::endl;
-                    turnOnItself(-M_PI / 2 + 0.2);
+                    usleep(ONE_SECOND / 3);
+                    stopMovement();
+                    turnOnItself(-M_PI / 2 + M_PI / 8);
                     mixer.setVelocity(follow_line_speed);
                     usleep(ONE_SECOND * 2);
                     state = TO_CHRONO;
