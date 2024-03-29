@@ -96,7 +96,7 @@ void AStateMachine::setup()
     chrono_distance_1 = strtof(ini["state_machine"]["chrono_distance_1"].c_str(), nullptr);
     chrono_distance_2 = strtof(ini["state_machine"]["chrono_distance_2"].c_str(), nullptr);
     chrono_distance_3 = strtof(ini["state_machine"]["chrono_distance_3"].c_str(), nullptr);
-    to_chrono_turnrate_update_distance = strtof(ini["state_machine"]["to_chrono_turnrate_update_distance"].c_str(), nullptr);
+    to_chrono_turnrate = strtof(ini["state_machine"]["to_chrono_turnrate"].c_str(), nullptr);
 
     // read door parameters
 
@@ -312,7 +312,7 @@ void AStateMachine::run()
     axe_states axe_state = AXE_GET_NEAR_AXE;
     // door_states door_state = DOOR_TRAVEL_DISTANCE;
     door_states door_state = DOOR_SECOND_DOOR;
-    // to_chrono_states to_chrono_state = TO_CHRONO_1;
+    to_chrono_states to_chrono_state = TO_CHRONO_FIRST_STRAIGHT;
 
     bool finished = false;
     bool lost = false;
@@ -730,29 +730,70 @@ void AStateMachine::run()
             break;
 
         case TO_CHRONO:
-            if (just_entered_new_state)
+
+            switch (to_chrono_state)
             {
-                std::cout << "Follow line to chrono" << std::endl;
-                std::cout << "to_chrono_turnrate_update_distance " << to_chrono_turnrate_update_distance << std::endl;
-                line_lost_couter_threshold = 100;
-                cedge.maxTurnrate = 0.2;
-                resetPose();
-                followLine(FOLLOW_RIGHT, 0.0, 0.8);
-                just_entered_new_state = false;
-            }
-            if ((pose.dist > to_chrono_turnrate_update_distance) && (!(turnrate_changed)))
-            {
-                std::cout << "Updating maxturnrate" << std::endl;
-                cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
-                followLine(FOLLOW_RIGHT, 0.0, 0.8);
-                turnrate_changed = true;
-            }
-            if (isLineLost())
-            {
-                std::cout << "Line lost. Arrived to chrono" << std::endl;
-                stopMovement();
-                state = FIND_LINE;
-                just_entered_new_state = true;
+            case TO_CHRONO_FIRST_STRAIGHT:
+                if (just_entered_new_state)
+                {
+                    std::cout << "To chrono first straight" << std::endl;
+                    resetPose();
+                    cedge.maxTurnrate = to_chrono_turnrate;
+                    followLine(FOLLOW_RIGHT, 0.0, 0.8);
+                    just_entered_new_state = false;
+                }
+                if (pose.dist > chrono_distance_1)
+                {
+                    to_chrono_state = TO_CHRONO_FIRST_CURVE;
+                    just_entered_new_state = true;
+                }
+                break;
+            case TO_CHRONO_FIRST_CURVE:
+                if (just_entered_new_state)
+                {
+                    std::cout << "To chrono first curve" << std::endl;
+                    resetPose();
+                    cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
+                    followLine(FOLLOW_RIGHT);
+                    just_entered_new_state = false;
+                }
+                if (pose.dist > chrono_distance_2)
+                {
+                    to_chrono_state = TO_CHRONO_SECOND_STRAIGHT;
+                    just_entered_new_state = true;
+                }
+                break;
+            case TO_CHRONO_SECOND_STRAIGHT:
+                if (just_entered_new_state)
+                {
+                    std::cout << "To chrono second straight" << std::endl;
+                    resetPose();
+                    cedge.maxTurnrate = to_chrono_turnrate;
+                    followLine(FOLLOW_RIGHT, 0.0, 0.8);
+                    just_entered_new_state = false;
+                }
+                if (pose.dist > chrono_distance_3)
+                {
+                    to_chrono_state = TO_CHRONO_SECOND_CURVE;
+                    just_entered_new_state = true;
+                }
+                break;
+            case TO_CHRONO_SECOND_CURVE:
+                if (just_entered_new_state)
+                {
+                    std::cout << "To chrono second curve" << std::endl;
+                    resetPose();
+                    cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
+                    followLine(FOLLOW_RIGHT);
+                    just_entered_new_state = false;
+                }
+                if (isLineLost())
+                {
+                    stopMovement();
+                    state = FIND_LINE;
+                    just_entered_new_state = true;
+                }
+                break;
             }
 
             break;
