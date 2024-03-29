@@ -43,8 +43,9 @@ public:
     void terminate();
 
     bool isLineDetected();
+    bool isLineLost();
     bool detectIntersection();
-    void followLine(bool move_right, float margin);
+    void followLine(bool move_right, float margin, float speed);
     void turnOnItself(float target_angle);
     void turnHeading(float target_angle);
     void stopMovement(int wait_time);
@@ -87,6 +88,14 @@ private:
     float chrono_distance_1;
     float chrono_distance_2;
     float chrono_distance_3;
+
+    // door parameters
+    float minimum_distance_to_wall;
+    float dist_to_wall{50000};
+    float second_door_distance;
+    float dist_threshold;
+
+    int edge_counter{0};
 
     int calibWood[8];
 
