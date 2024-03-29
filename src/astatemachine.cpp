@@ -75,12 +75,14 @@ void AStateMachine::setup()
     follow_line_speed = strtof(ini["state_machine"]["follow_line_speed"].c_str(), nullptr);
     turn_speed = strtof(ini["state_machine"]["turn_speed"].c_str(), nullptr);
     threshold_distance_to_start_detection = strtof(ini["state_machine"]["threshold_distance_to_start_detection"].c_str(), nullptr);
+    line_lost_couter_threshold = strtof(ini["state_machine"]["line_lost_couter_threshold"].c_str(), nullptr);
 
     // read roundabout parameters
     avoid_regbot_margin = strtof(ini["state_machine"]["avoid_regbot_margin"].c_str(), nullptr);
     minimum_distance_to_regbot = strtof(ini["state_machine"]["minimum_distance_to_regbot"].c_str(), nullptr);
     distance_to_roundabout = strtof(ini["state_machine"]["distance_to_roundabout"].c_str(), nullptr);
     seconds_for_regbot_to_leave = strtof(ini["state_machine"]["seconds_for_regbot_to_leave"].c_str(), nullptr);
+    approximation_distance_to_roundabout = strtof(ini["state_machine"]["approximation_distance_to_roundabout"].c_str(), nullptr);
 
     // read axe parameters
     minimum_distance_to_axe = strtof(ini["state_machine"]["minimum_distance_to_axe"].c_str(), nullptr);
@@ -88,6 +90,7 @@ void AStateMachine::setup()
     axe_cross_speed = strtof(ini["state_machine"]["axe_cross_speed"].c_str(), nullptr);
     approximation_distance_to_axe = strtof(ini["state_machine"]["approximation_distance_to_axe"].c_str(), nullptr);
     distance_to_cross_axe = strtof(ini["state_machine"]["distance_to_cross_axe"].c_str(), nullptr);
+    approximation_speed_to_axe = strtof(ini["state_machine"]["approximation_speed_to_axe"].c_str(), nullptr);
 
     // to chrono parameters
     chrono_distance_1 = strtof(ini["state_machine"]["chrono_distance_1"].c_str(), nullptr);
@@ -165,18 +168,20 @@ enum door_states
     DOOR_SECOND_DOOR,
 };
 
-bool AStateMachine::isLineDetected(){
+bool AStateMachine::isLineDetected()
+{
     return medge.edgeValid;
 }
 
 bool AStateMachine::isLineLost()
 {
-    if(!medge.edgeValid) 
+    if (!medge.edgeValid)
         edge_counter++;
-    else 
+    else
         edge_counter = 0;
 
-    if (edge_counter > 20){
+    if (edge_counter > line_lost_couter_threshold)
+    {
         edge_counter = 0;
         return true;
     }
@@ -184,8 +189,9 @@ bool AStateMachine::isLineLost()
     {
         return false;
     }
-    
-    else{
+
+    else
+    {
         edge_counter = 0;
         return false;
     }
@@ -365,21 +371,11 @@ void AStateMachine::run()
                     turnOnItself(M_PI / 2);
                     mixer.setVelocity(-0.1);
                     t.now();
-                    while(t.getTimePassed() < 0.8) usleep(2000);
-                    // turnHeading(M_PI / 2 + 0.3);
-                    // just_entered_new_state = false;
-
+                    while (t.getTimePassed() < 0.8)
+                        usleep(2000);
                     just_entered_new_state = true;
                     enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
                 }
-                // if (pose.h > M_PI / 2){
-
-                //     mixer.setTurnrate(0.0);
-                //     pose.resetPose();
-                //     usleep(20000);
-                //     just_entered_new_state = true;
-                //     enter_roundabout_state = ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE;
-                // }
                 break;
 
             case ROUNDABOUT_WAIT_FOR_REGBOT_TO_ARRIVE:
@@ -425,8 +421,7 @@ void AStateMachine::run()
                     mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                 }
-                if (isLineDetected() && pose.dist > 0.7)
-                // if (pose.dist > 1.0)
+                if (isLineDetected() && pose.dist > approximation_distance_to_roundabout)
                 {
                     enter_roundabout_state = ROUNDABOUT_FOLLOW_LINE;
                     resetPose();
@@ -501,7 +496,7 @@ void AStateMachine::run()
             if (just_entered_new_state)
             {
                 std::cout << "Axe" << std::endl;
-                followLine(FOLLOW_LEFT, 0.0, 0.15);
+                followLine(FOLLOW_LEFT, 0.0, approximation_speed_to_axe);
                 just_entered_new_state = false;
             }
 
@@ -546,7 +541,6 @@ void AStateMachine::run()
 
                     resetPose();
                     followLine(FOLLOW_RIGHT);
-                    // stopMovement(4000);
                     state = DOORS;
                 }
                 break;
@@ -569,7 +563,6 @@ void AStateMachine::run()
 
             break;
 
-
         case DOORS:
             switch (door_state)
             {
@@ -577,12 +570,9 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[DOORS] wait to travel" << std::endl;
-                    // turnOnItself(M_PI / 2);
-
-                    just_entered_new_state = false;
-                    // door_state = TO_WALL;
                 }
-                if(pose.dist > 0.7){
+                if (pose.dist > approximation_distance_to_doors)
+                {
                     stopMovement(4000);
                     door_state = DOOR_TURN_TO_WALL;
                     just_entered_new_state = true;
@@ -639,7 +629,7 @@ void AStateMachine::run()
                     stopMovement(2000);
                     resetPose();
 
-                    turnOnItself(-M_PI/2);
+                    turnOnItself(-M_PI / 2);
                     intersection_detected = false;
                     just_entered_new_state = true;
                     door_state = DOOR_GET_CLOSE_TO_WALL;
@@ -647,26 +637,24 @@ void AStateMachine::run()
                 break;
             case DOOR_GET_CLOSE_TO_WALL:
                 if (just_entered_new_state)
-                    {
-                        std::cout << "[DOORS] Getting close to wall" << std::endl;
-                        stopMovement(2000);
-                        turnOnItself(-M_PI/8);
-                        resetPose();
-                        mixer.setVelocity(-0.1);
-                        just_entered_new_state = false;
-                        t.now();
-                    }
+                {
+                    std::cout << "[DOORS] Getting close to wall" << std::endl;
+                    stopMovement(2000);
+                    turnOnItself(-M_PI / 8);
+                    resetPose();
+                    mixer.setVelocity(-0.1);
+                    just_entered_new_state = false;
+                    t.now();
+                }
                 if (t.getTimePassed() > 2.5)
-                {   
+                {
 
                     stopMovement(2000);
-                    turnOnItself(M_PI/8);
+                    turnOnItself(M_PI / 8);
                     just_entered_new_state = true;
                     door_state = DOOR_FIRST_DOOR;
                 }
                 break;
-
-
 
             case DOOR_FIRST_DOOR:
                 if (just_entered_new_state)
@@ -682,7 +670,7 @@ void AStateMachine::run()
                     std::cout << "[DOORS] Door #1 Openend!" << std::endl;
                     stopMovement(2000);
                     resetPose();
-                    turnOnItself(M_PI/2);
+                    turnOnItself(M_PI / 2);
                     intersection_detected = false;
                     just_entered_new_state = true;
                     door_state = DOOR_GET_TO_INTERSECTION;
@@ -691,9 +679,8 @@ void AStateMachine::run()
                 break;
 
             case DOOR_GET_TO_INTERSECTION:
-                // stopMovement(10000000);
-
-                if (just_entered_new_state){
+                if (just_entered_new_state)
+                {
                     std::cout << "[DOOR] Get to intersection" << std::endl;
                     resetPose();
                     mixer.setVelocity(follow_line_speed);
@@ -707,64 +694,36 @@ void AStateMachine::run()
                     turnOnItself(M_PI / 2);
                     door_state = DOOR_SECOND_DOOR;
                     just_entered_new_state = true;
-                    // usleep(20000000);
                 }
-
 
                 break;
 
             case DOOR_SECOND_DOOR:
-                // stopMovement(10000000);
-                // std::cout << isLineDetected() << std::endl;
-
-                if (just_entered_new_state){
+                if (just_entered_new_state)
+                {
                     std::cout << "[DOOR] Second door!" << std::endl;
                     resetPose();
                     followLine(FOLLOW_RIGHT);
                     just_entered_new_state = false;
                 }
 
-
-                if(isLineLost()){
+                if (isLineLost())
+                {
                     stopMovement(2000);
                     turnOnItself(M_PI - 0.02);
-                    // mixer.setVelocity(0.1);
-                    // usleep(ONE_SECOND); 
                     just_entered_new_state = true;
                     state = TO_CHRONO;
                 }
-                // if (dist.dist[0] < second_door_distance)
-                // {
-                //     resetPose();
-                //     mixer.setVelocity(0.7);
-                //     t.now();
-                //     if (t.getTimePassed() > 0.3)
-                //         stopMovement();
-                //     usleep(20000000);
-                // }
-
 
                 break;
-            
 
             default:
                 break;
             }
 
-
-
             break;
 
-
-
-
-
-
-
-
-
         case TO_CHRONO:
-
 
             if (just_entered_new_state)
             {

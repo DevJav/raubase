@@ -70,12 +70,14 @@ private:
     float follow_line_speed;
     float turn_speed;
     float threshold_distance_to_start_detection;
+    int line_lost_couter_threshold;
 
     // roundabout parameters
     float avoid_regbot_margin;
     float minimum_distance_to_regbot;
     float distance_to_roundabout;
     float seconds_for_regbot_to_leave;
+    float approximation_distance_to_roundabout;
 
     // axes parameters
     float minimum_distance_to_axe = 0.3;
@@ -83,6 +85,7 @@ private:
     float axe_cross_speed;
     float approximation_distance_to_axe;
     float distance_to_cross_axe;
+    float approximation_speed_to_axe;
 
     // to chrono parameters
     float chrono_distance_1;
@@ -94,6 +97,7 @@ private:
     float dist_to_wall{50000};
     float second_door_distance;
     float dist_threshold;
+    float approximation_distance_to_doors;
 
     int edge_counter{0};
 
