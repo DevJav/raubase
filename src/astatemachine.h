@@ -91,6 +91,7 @@ private:
     float chrono_distance_1;
     float chrono_distance_2;
     float chrono_distance_3;
+    float to_chrono_turnrate_update_distance;
 
     // door parameters
     float minimum_distance_to_wall;

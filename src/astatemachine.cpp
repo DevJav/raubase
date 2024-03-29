@@ -96,12 +96,14 @@ void AStateMachine::setup()
     chrono_distance_1 = strtof(ini["state_machine"]["chrono_distance_1"].c_str(), nullptr);
     chrono_distance_2 = strtof(ini["state_machine"]["chrono_distance_2"].c_str(), nullptr);
     chrono_distance_3 = strtof(ini["state_machine"]["chrono_distance_3"].c_str(), nullptr);
+    to_chrono_turnrate_update_distance = strtof(ini["state_machine"]["to_chrono_turnrate_update_distance"].c_str(), nullptr);
 
     // read door parameters
 
     minimum_distance_to_wall = strtof(ini["state_machine"]["minimum_distance_to_wall"].c_str(), nullptr);
     second_door_distance = strtof(ini["state_machine"]["second_door_distance"].c_str(), nullptr);
     dist_threshold = strtof(ini["state_machine"]["dist_threshold"].c_str(), nullptr);
+    approximation_distance_to_doors = strtof(ini["state_machine"]["approximation_distance_to_doors"].c_str(), nullptr);
 
     const char *calib_wood = ini["edge"]["calibwood"].c_str();
     for (int i = 0; i < 8; i++)
@@ -151,9 +153,10 @@ enum axe_states
 
 enum to_chrono_states
 {
-    TO_CHRONO_1,
-    TO_CHRONO_2,
-    TO_CHRONO_3,
+    TO_CHRONO_FIRST_STRAIGHT,
+    TO_CHRONO_FIRST_CURVE,
+    TO_CHRONO_SECOND_STRAIGHT,
+    TO_CHRONO_SECOND_CURVE
 };
 
 enum door_states
@@ -209,7 +212,7 @@ bool AStateMachine::detectIntersection()
 
     if (intersection_detection_counter > intersection_detection_threshold)
     {
-        std::cout << "Intersection found!" << std::endl;
+        // std::cout << "Intersection found!" << std::endl;
         return true;
     }
     return false;
@@ -303,10 +306,11 @@ void AStateMachine::run()
     toLog("State Machine started");
     //
 
-    states state = START_TO_FIRST_INTERSECTION;
-    // states state = AXE;
+    // states state = START_TO_FIRST_INTERSECTION;
+    states state = DOORS;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
     axe_states axe_state = AXE_GET_NEAR_AXE;
+    // door_states door_state = DOOR_TRAVEL_DISTANCE;
     door_states door_state = DOOR_SECOND_DOOR;
     // to_chrono_states to_chrono_state = TO_CHRONO_1;
 
@@ -314,6 +318,7 @@ void AStateMachine::run()
     bool lost = false;
     bool just_entered_new_state = true;
     bool intersection_detected = false;
+    bool turnrate_changed = false;
 
     toLog("Starting loop");
 
@@ -570,6 +575,7 @@ void AStateMachine::run()
                 if (just_entered_new_state)
                 {
                     std::cout << "[DOORS] wait to travel" << std::endl;
+                    just_entered_new_state = false;
                 }
                 if (pose.dist > approximation_distance_to_doors)
                 {
@@ -596,7 +602,7 @@ void AStateMachine::run()
             case DOOR_TO_WALL:
                 if (just_entered_new_state)
                 {
-                    std::cout << "[DOORS] approach wall" << std::endl;
+                    std::cout << "[DOORS] aDOORSpproach wall" << std::endl;
                     stopMovement(2000);
                     mixer.setVelocity(0.15);
                     just_entered_new_state = false;
@@ -724,16 +730,26 @@ void AStateMachine::run()
             break;
 
         case TO_CHRONO:
-
             if (just_entered_new_state)
             {
                 std::cout << "Follow line to chrono" << std::endl;
+                std::cout << "to_chrono_turnrate_update_distance " << to_chrono_turnrate_update_distance << std::endl;
+                line_lost_couter_threshold = 100;
+                cedge.maxTurnrate = 0.2;
+                resetPose();
                 followLine(FOLLOW_RIGHT, 0.0, 0.8);
                 just_entered_new_state = false;
             }
+            if ((pose.dist > to_chrono_turnrate_update_distance) && (!(turnrate_changed)))
+            {
+                std::cout << "Updating maxturnrate" << std::endl;
+                cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
+                followLine(FOLLOW_RIGHT, 0.0, 0.8);
+                turnrate_changed = true;
+            }
             if (isLineLost())
             {
-                std::cout << "LIne lost. Arrived to chrono" << std::endl;
+                std::cout << "Line lost. Arrived to chrono" << std::endl;
                 stopMovement();
                 state = FIND_LINE;
                 just_entered_new_state = true;
