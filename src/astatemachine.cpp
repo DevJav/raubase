@@ -96,7 +96,10 @@ void AStateMachine::setup()
     chrono_distance_1 = strtof(ini["state_machine"]["chrono_distance_1"].c_str(), nullptr);
     chrono_distance_2 = strtof(ini["state_machine"]["chrono_distance_2"].c_str(), nullptr);
     chrono_distance_3 = strtof(ini["state_machine"]["chrono_distance_3"].c_str(), nullptr);
+    chrono_calib_change = strtof(ini["state_machine"]["chrono_calib_change"].c_str(), nullptr);
     to_chrono_turnrate = strtof(ini["state_machine"]["to_chrono_turnrate"].c_str(), nullptr);
+    to_chrono_straight_speed = strtof(ini["state_machine"]["to_chrono_straight_speed"].c_str(), nullptr);
+    to_chrono_curve_speed = strtof(ini["state_machine"]["to_chrono_curve_speed"].c_str(), nullptr);
 
     // read door parameters
 
@@ -310,8 +313,8 @@ void AStateMachine::run()
     states state = DOORS;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
     axe_states axe_state = AXE_GET_NEAR_AXE;
-    // door_states door_state = DOOR_TRAVEL_DISTANCE;
     door_states door_state = DOOR_SECOND_DOOR;
+    // door_states door_state = DOOR_TRAVEL_DISTANCE;
     to_chrono_states to_chrono_state = TO_CHRONO_FIRST_STRAIGHT;
 
     bool finished = false;
@@ -738,9 +741,18 @@ void AStateMachine::run()
                 {
                     std::cout << "To chrono first straight" << std::endl;
                     resetPose();
-                    cedge.maxTurnrate = to_chrono_turnrate;
-                    followLine(FOLLOW_RIGHT, 0.0, 0.8);
+                    for (int speed = 0; speed < 4; speed++)
+                    {
+                        if (speed == 3)
+                            cedge.maxTurnrate = to_chrono_turnrate;
+                        followLine(FOLLOW_LEFT, 0.000000001, to_chrono_straight_speed / (4 - speed));
+                        usleep(ONE_SECOND / 2);
+                    }
                     just_entered_new_state = false;
+                }
+                if (pose.dist > chrono_calib_change){
+                    std::cout << "UPDATED CALIBRATION" << std::endl;
+                    medge.updateCalibrationBlack(calibWood);
                 }
                 if (pose.dist > chrono_distance_1)
                 {
@@ -754,7 +766,7 @@ void AStateMachine::run()
                     std::cout << "To chrono first curve" << std::endl;
                     resetPose();
                     cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
-                    followLine(FOLLOW_RIGHT);
+                    followLine(FOLLOW_RIGHT, 0.015, to_chrono_curve_speed);
                     just_entered_new_state = false;
                 }
                 if (pose.dist > chrono_distance_2)
@@ -769,7 +781,7 @@ void AStateMachine::run()
                     std::cout << "To chrono second straight" << std::endl;
                     resetPose();
                     cedge.maxTurnrate = to_chrono_turnrate;
-                    followLine(FOLLOW_RIGHT, 0.0, 0.8);
+                    followLine(FOLLOW_RIGHT, 0.015, to_chrono_straight_speed - 0.3);
                     just_entered_new_state = false;
                 }
                 if (pose.dist > chrono_distance_3)
@@ -784,7 +796,7 @@ void AStateMachine::run()
                     std::cout << "To chrono second curve" << std::endl;
                     resetPose();
                     cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
-                    followLine(FOLLOW_RIGHT);
+                    followLine(FOLLOW_RIGHT, 0.015, to_chrono_curve_speed);
                     just_entered_new_state = false;
                 }
                 if (isLineLost())
