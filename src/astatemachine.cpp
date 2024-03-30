@@ -100,6 +100,7 @@ void AStateMachine::setup()
     to_chrono_turnrate = strtof(ini["state_machine"]["to_chrono_turnrate"].c_str(), nullptr);
     to_chrono_straight_speed = strtof(ini["state_machine"]["to_chrono_straight_speed"].c_str(), nullptr);
     to_chrono_curve_speed = strtof(ini["state_machine"]["to_chrono_curve_speed"].c_str(), nullptr);
+    seesaw_advance_dist = strtof(ini["state_machine"]["seesaw_advance_dist"].c_str(), nullptr);
 
     // read door parameters
 
@@ -107,6 +108,9 @@ void AStateMachine::setup()
     second_door_distance = strtof(ini["state_machine"]["second_door_distance"].c_str(), nullptr);
     dist_threshold = strtof(ini["state_machine"]["dist_threshold"].c_str(), nullptr);
     approximation_distance_to_doors = strtof(ini["state_machine"]["approximation_distance_to_doors"].c_str(), nullptr);
+
+    // ramp parameters
+    distance_before_180_turn = strtof(ini["state_machine"]["distance_before_180_turn"].c_str(), nullptr);
 
     const char *calib_wood = ini["edge"]["calibwood"].c_str();
     for (int i = 0; i < 8; i++)
@@ -133,6 +137,8 @@ enum states
     TO_CHRONO,
     FIND_LINE,
     UP_RAMP,
+    TO_SEESAW,
+    SEESAW,
 };
 
 enum roundabout_states
@@ -310,7 +316,7 @@ void AStateMachine::run()
     //
 
     // states state = START_TO_FIRST_INTERSECTION;
-    states state = DOORS;
+    states state = TO_SEESAW;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
     axe_states axe_state = AXE_GET_NEAR_AXE;
     door_states door_state = DOOR_SECOND_DOOR;
@@ -321,7 +327,6 @@ void AStateMachine::run()
     bool lost = false;
     bool just_entered_new_state = true;
     bool intersection_detected = false;
-    bool turnrate_changed = false;
 
     toLog("Starting loop");
 
@@ -750,7 +755,8 @@ void AStateMachine::run()
                     }
                     just_entered_new_state = false;
                 }
-                if (pose.dist > chrono_calib_change){
+                if (pose.dist > chrono_calib_change)
+                {
                     std::cout << "UPDATED CALIBRATION" << std::endl;
                     medge.updateCalibrationBlack(calibWood);
                 }
@@ -834,9 +840,64 @@ void AStateMachine::run()
             // Subir la rampa
             if (just_entered_new_state)
             {
-                std::cout << "Up ramp (last_state)" << std::endl;
+                std::cout << "Up ramp, distance: " << distance_before_180_turn << std::endl;
+                resetPose();
                 followLine(FOLLOW_LEFT);
                 just_entered_new_state = false;
+            }
+            if (pose.dist > distance_before_180_turn)
+            {
+                state = TO_SEESAW;
+                resetPose();
+                intersection_detected = false;
+                just_entered_new_state = true;
+            }
+            break;
+        case TO_SEESAW:
+            if (just_entered_new_state)
+            {
+                std::cout << "To seesaw" << std::endl;
+                stopMovement();
+                turnOnItself(M_PI - 0.03); // it goes to -3.13 before reading 3.14
+                stopMovement();
+                resetPose();
+                followLine(FOLLOW_LEFT);
+                just_entered_new_state = false;
+            }
+            if (detectIntersection() && (pose.dist > 3.5))
+            {
+                std::cout << "Arrived to seesaw intersection" << std::endl;
+                just_entered_new_state = true;
+                state = SEESAW;
+                stopMovement();
+            }
+            // if (detectIntersection() && seesaw_counter == 0)
+            // {
+            //     std::cout << "Arrived to stairs intersection" << std::endl;
+            //     seesaw_counter++;
+            //     usleep(ONE_SECOND);
+            // }
+            // if (detectIntersection() && seesaw_counter == 0)
+            // {
+            //     std::cout << "Arrived to seesaw intersection" << std::endl;
+            //     just_entered_new_state = true;
+            //     state = SEESAW;
+            //     stopMovement();
+            // }
+            break;
+
+        case SEESAW:
+            if (just_entered_new_state)
+            {
+                turnOnItself(M_PI / 2);
+                resetPose();
+                followLine(FOLLOW_RIGHT, 0.000001, 0.1);
+                just_entered_new_state = false;
+            }
+
+            if (pose.dist > seesaw_advance_dist && detectIntersection())
+            {
+                stopMovement(2000000);
             }
             break;
 

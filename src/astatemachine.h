@@ -103,7 +103,12 @@ private:
     float dist_threshold;
     float approximation_distance_to_doors;
 
+    // ramp parameters
+    float distance_before_180_turn;
+
     int edge_counter{0};
+    int seesaw_counter{0};
+    float seesaw_advance_dist;
 
     int calibWood[8];
 
