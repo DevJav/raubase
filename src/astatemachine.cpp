@@ -101,6 +101,7 @@ void AStateMachine::setup()
     to_chrono_curve_turnrate = strtof(ini["state_machine"]["to_chrono_curve_turnrate"].c_str(), nullptr);
     to_chrono_straight_speed = strtof(ini["state_machine"]["to_chrono_straight_speed"].c_str(), nullptr);
     to_chrono_curve_speed = strtof(ini["state_machine"]["to_chrono_curve_speed"].c_str(), nullptr);
+
     seesaw_advance_dist = strtof(ini["state_machine"]["seesaw_advance_dist"].c_str(), nullptr);
     siren_advance_dist = strtof(ini["state_machine"]["siren_advance_dist"].c_str(), nullptr);
 
@@ -115,6 +116,7 @@ void AStateMachine::setup()
 
     // ramp parameters
     distance_before_180_turn = strtof(ini["state_machine"]["distance_before_180_turn"].c_str(), nullptr);
+    seesaw_avoid_wood_as_intersection_distance = strtof(ini["state_machine"]["seesaw_avoid_wood_as_intersection_distance"].c_str(), nullptr);
 
     const char *calib_wood = ini["edge"]["calibwood"].c_str();
     for (int i = 0; i < 8; i++)
@@ -276,26 +278,6 @@ void AStateMachine::turnOnItself(float target_angle)
     // mixer.setManualControl(false, 0.0, 0.0);
     mixer.setTurnrate(0.0);
     usleep(20000);
-    std::cout << "Finished turning" << std::endl;
-    usleep(ONE_SECOND);
-}
-
-void AStateMachine::turnHeading(float target_angle)
-{
-    std::cout << "Turning to " << target_angle * 180 / M_PI << " degrees with turn rate " << turn_speed << std::endl;
-    pose.turned = 0;
-    pose.h = 0;
-    usleep(20000);
-    mixer.setVelocity(0.1);
-    mixer.setDesiredHeading(target_angle);
-    while (pose.h < target_angle)
-    {
-        // mixer.setTurnrate(turn_speed);
-        // std::cout << pose.h << std::endl;
-        usleep(400);
-    }
-
-    mixer.setVelocity(0.0);
     std::cout << "Finished turning" << std::endl;
     usleep(ONE_SECOND);
 }
@@ -488,7 +470,6 @@ void AStateMachine::run()
                     std::cout << "[Enter roundabout] exit roundabout" << std::endl;
                     stopMovement(1000);
                     turnOnItself(M_PI - M_PI / 6); // it goes to -3.13 before reading 3.14
-                    // turnHeading(M_PI);
                     mixer.setVelocity(follow_line_speed);
                     just_entered_new_state = false;
                     t.now();
@@ -518,7 +499,6 @@ void AStateMachine::run()
             {
                 stopMovement();
                 turnOnItself(M_PI / 4 - M_PI / 12);
-                // turnHeading((M_PI / 4 - M_PI / 6)*1.19);
                 state = AXE;
                 resetPose();
                 intersection_detected = false;
@@ -779,7 +759,7 @@ void AStateMachine::run()
                 }
                 if (pose.dist > chrono_calib_change && !calibration_changed_chrono)
                 {
-                    std::cout << "UPDATED CALIBRATION" << std::endl;
+                    std::cout << "UPDATED CALIBRATION TO WOOD" << std::endl;
                     medge.updateCalibrationBlack(calibWood);
                     calibration_changed_chrono = true;
                 }
@@ -852,7 +832,6 @@ void AStateMachine::run()
                 usleep(ONE_SECOND / 4);
                 stopMovement();
                 turnOnItself(M_PI / 2);
-                // turnHeading((M_PI/2)*1.19);
                 resetPose();
                 intersection_detected = false;
                 just_entered_new_state = true;
@@ -888,26 +867,13 @@ void AStateMachine::run()
                 followLine(FOLLOW_RIGHT);
                 just_entered_new_state = false;
             }
-            if (detectIntersection() && (pose.dist > 4))
+            if (detectIntersection() && (pose.dist > seesaw_avoid_wood_as_intersection_distance))
             {
                 std::cout << "Arrived to 1rst intersection" << std::endl;
                 just_entered_new_state = true;
                 state = SEESAW;
                 stopMovement();
             }
-            // if (detectIntersection() && seesaw_counter == 0)
-            // {
-            //     std::cout << "Arrived to stairs intersection" << std::endl;
-            //     seesaw_counter++;
-            //     usleep(ONE_SECOND);
-            // }
-            // if (detectIntersection() && seesaw_counter == 0)
-            // {
-            //     std::cout << "Arrived to seesaw intersection" << std::endl;
-            //     just_entered_new_state = true;
-            //     state = SEESAW;
-            //     stopMovement();
-            // }
             break;
 
         case SEESAW:
@@ -937,7 +903,7 @@ void AStateMachine::run()
             if (just_entered_new_state)
             {
                 std::cout << "To siren" << std::endl;
-                std::cout << "UPDATED CALIBRATION" << std::endl;
+                std::cout << "UPDATED CALIBRATION TO WOOD" << std::endl;
                 medge.updateCalibrationBlack(calibWood);
                 turnOnItself(-M_PI / 2 + M_PI / 9);
 
@@ -953,19 +919,15 @@ void AStateMachine::run()
                 first_intersection = true;
                 stopMovement();
                 mixer.setVelocity(follow_line_speed);
-                // std::cout << "GO_TO_LINE" << std::endl;
                 usleep(ONE_SECOND / 2);
             }
             else if (detectIntersection() && (first_intersection))
             {
                 std::cout << "Second intersection" << std::endl;
-                // std::cout << "GO_TO_SIREN" << std::endl;
                 turnOnItself(M_PI / 2);
                 resetPose();
                 followLine(FOLLOW_RIGHT);
             }
-            // if (pose.dist > dist_to_siren)
-            //     stopMovement(200000000);
             break;
 
         default:
