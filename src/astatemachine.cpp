@@ -101,6 +101,9 @@ void AStateMachine::setup()
     to_chrono_straight_speed = strtof(ini["state_machine"]["to_chrono_straight_speed"].c_str(), nullptr);
     to_chrono_curve_speed = strtof(ini["state_machine"]["to_chrono_curve_speed"].c_str(), nullptr);
     seesaw_advance_dist = strtof(ini["state_machine"]["seesaw_advance_dist"].c_str(), nullptr);
+    siren_advance_dist = strtof(ini["state_machine"]["siren_advance_dist"].c_str(), nullptr);
+
+    dist_to_siren = strtof(ini["state_machine"]["dist_to_siren"].c_str(), nullptr);
 
     // read door parameters
 
@@ -116,6 +119,12 @@ void AStateMachine::setup()
     for (int i = 0; i < 8; i++)
     {
         calibWood[i] = strtol(calib_wood, (char **)&calib_wood, 10);
+    }
+
+    const char *calib_black = ini["edge"]["calibblack"].c_str();
+    for (int i = 0; i < 8; i++)
+    {
+        calibBlack[i] = strtol(calib_black, (char **)&calib_black, 10);
     }
 
     setupDone = true;
@@ -139,6 +148,7 @@ enum states
     UP_RAMP,
     TO_SEESAW,
     SEESAW,
+    TO_SIREN,
 };
 
 enum roundabout_states
@@ -315,18 +325,27 @@ void AStateMachine::run()
     toLog("State Machine started");
     //
 
-    // states state = START_TO_FIRST_INTERSECTION;
-    states state = TO_SEESAW;
+    // Dont modify this
+    states state = START_TO_FIRST_INTERSECTION;
     roundabout_states enter_roundabout_state = ROUNDABOUT_TURN_TO_WAIT;
     axe_states axe_state = AXE_GET_NEAR_AXE;
-    door_states door_state = DOOR_SECOND_DOOR;
-    // door_states door_state = DOOR_TRAVEL_DISTANCE;
+    door_states door_state = DOOR_TRAVEL_DISTANCE;
     to_chrono_states to_chrono_state = TO_CHRONO_FIRST_STRAIGHT;
+
+    // Update here initial states if needed
+    state = SEESAW;
+    // enter_roundabout_state = ;
+    // axe_state = ;
+    // door_state = ;
+    // to_chrono_state = ;
+    //
 
     bool finished = false;
     bool lost = false;
     bool just_entered_new_state = true;
     bool intersection_detected = false;
+    bool calibration_changed_chrono = false;
+    bool first_intersection = false;
 
     toLog("Starting loop");
 
@@ -341,6 +360,7 @@ void AStateMachine::run()
             if (just_entered_new_state)
             {
                 std::cout << "Start to first intersection" << std::endl;
+                // servo.setServo(1, true, 0, 500);
                 followLine(FOLLOW_LEFT);
                 just_entered_new_state = false;
             }
@@ -495,6 +515,7 @@ void AStateMachine::run()
             }
             if (intersection_detected)
             {
+                stopMovement();
                 turnOnItself(M_PI / 4 - M_PI / 12);
                 // turnHeading((M_PI / 4 - M_PI / 6)*1.19);
                 state = AXE;
@@ -755,10 +776,11 @@ void AStateMachine::run()
                     }
                     just_entered_new_state = false;
                 }
-                if (pose.dist > chrono_calib_change)
+                if (pose.dist > chrono_calib_change && !calibration_changed_chrono)
                 {
                     std::cout << "UPDATED CALIBRATION" << std::endl;
                     medge.updateCalibrationBlack(calibWood);
+                    calibration_changed_chrono = true;
                 }
                 if (pose.dist > chrono_distance_1)
                 {
@@ -858,15 +880,16 @@ void AStateMachine::run()
             {
                 std::cout << "To seesaw" << std::endl;
                 stopMovement();
+                medge.updateCalibrationBlack(calibWood);
                 turnOnItself(M_PI - 0.03); // it goes to -3.13 before reading 3.14
                 stopMovement();
                 resetPose();
-                followLine(FOLLOW_LEFT);
+                followLine(FOLLOW_RIGHT);
                 just_entered_new_state = false;
             }
-            if (detectIntersection() && (pose.dist > 3.5))
+            if (detectIntersection() && (pose.dist > 4))
             {
-                std::cout << "Arrived to seesaw intersection" << std::endl;
+                std::cout << "Arrived to 1rst intersection" << std::endl;
                 just_entered_new_state = true;
                 state = SEESAW;
                 stopMovement();
@@ -889,16 +912,59 @@ void AStateMachine::run()
         case SEESAW:
             if (just_entered_new_state)
             {
+                std::cout << "Seesaw" << std::endl;
+                followLine(FOLLOW_LEFT);
+                usleep(ONE_SECOND / 2);
                 turnOnItself(M_PI / 2);
                 resetPose();
                 followLine(FOLLOW_RIGHT, 0.000001, 0.1);
                 just_entered_new_state = false;
             }
 
-            if (pose.dist > seesaw_advance_dist && detectIntersection())
+            if ((pose.dist > seesaw_advance_dist) && detectIntersection())
             {
-                stopMovement(2000000);
+                stopMovement();
+                std::cout << "Detected line" << std ::endl;
+                state = TO_SIREN;
+                resetPose();
+                intersection_detected = false;
+                just_entered_new_state = true;
             }
+            break;
+
+        case TO_SIREN:
+            if (just_entered_new_state)
+            {
+                std::cout << "To siren" << std::endl;
+                std::cout << "UPDATED CALIBRATION" << std::endl;
+                medge.updateCalibrationBlack(calibWood);
+                turnOnItself(-M_PI / 2 + M_PI / 9);
+
+                resetPose();
+                usleep(ONE_SECOND / 2);
+                followLine(FOLLOW_RIGHT, 0.0001);
+                just_entered_new_state = false;
+            }
+
+            if (detectIntersection() && (first_intersection == false))
+            {
+                std::cout << "First intersection" << std::endl;
+                first_intersection = true;
+                stopMovement();
+                mixer.setVelocity(follow_line_speed);
+                // std::cout << "GO_TO_LINE" << std::endl;
+                usleep(ONE_SECOND / 2);
+            }
+            else if (detectIntersection() && (first_intersection))
+            {
+                std::cout << "Second intersection" << std::endl;
+                // std::cout << "GO_TO_SIREN" << std::endl;
+                turnOnItself(M_PI / 2);
+                resetPose();
+                followLine(FOLLOW_RIGHT);
+            }
+            // if (pose.dist > dist_to_siren)
+            //     stopMovement(200000000);
             break;
 
         default:

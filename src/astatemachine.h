@@ -110,7 +110,12 @@ private:
     int seesaw_counter{0};
     float seesaw_advance_dist;
 
+    //siren
+    float siren_advance_dist;
+    float dist_to_siren;
+
     int calibWood[8];
+    int calibBlack[8];
 
     // internal variables
     int intersection_detection_counter{0};
