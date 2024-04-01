@@ -93,6 +93,7 @@ private:
     float chrono_distance_3;
     float chrono_calib_change;
     float to_chrono_turnrate;
+    float to_chrono_curve_turnrate;
     float to_chrono_straight_speed;
     float to_chrono_curve_speed;
 

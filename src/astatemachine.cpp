@@ -98,6 +98,7 @@ void AStateMachine::setup()
     chrono_distance_3 = strtof(ini["state_machine"]["chrono_distance_3"].c_str(), nullptr);
     chrono_calib_change = strtof(ini["state_machine"]["chrono_calib_change"].c_str(), nullptr);
     to_chrono_turnrate = strtof(ini["state_machine"]["to_chrono_turnrate"].c_str(), nullptr);
+    to_chrono_curve_turnrate = strtof(ini["state_machine"]["to_chrono_curve_turnrate"].c_str(), nullptr);
     to_chrono_straight_speed = strtof(ini["state_machine"]["to_chrono_straight_speed"].c_str(), nullptr);
     to_chrono_curve_speed = strtof(ini["state_machine"]["to_chrono_curve_speed"].c_str(), nullptr);
     seesaw_advance_dist = strtof(ini["state_machine"]["seesaw_advance_dist"].c_str(), nullptr);
@@ -333,7 +334,7 @@ void AStateMachine::run()
     to_chrono_states to_chrono_state = TO_CHRONO_FIRST_STRAIGHT;
 
     // Update here initial states if needed
-    state = SEESAW;
+    // state = TO_CHRONO;
     // enter_roundabout_state = ;
     // axe_state = ;
     // door_state = ;
@@ -793,7 +794,7 @@ void AStateMachine::run()
                 {
                     std::cout << "To chrono first curve" << std::endl;
                     resetPose();
-                    cedge.maxTurnrate = strtof(ini["edge"]["maxturnrate"].c_str(), nullptr);
+                    cedge.maxTurnrate = to_chrono_curve_turnrate;
                     followLine(FOLLOW_RIGHT, 0.015, to_chrono_curve_speed);
                     just_entered_new_state = false;
                 }
