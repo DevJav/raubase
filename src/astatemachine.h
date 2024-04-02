@@ -115,7 +115,8 @@ private:
     float siren_advance_dist;
     float dist_to_siren;
 
-    int calibWood[8];
+    int calibWood_siren[8];
+    int calibWood_racetrack[8];
     int calibBlack[8];
 
     // internal variables

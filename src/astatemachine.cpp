@@ -116,10 +116,15 @@ void AStateMachine::setup()
     // ramp parameters
     distance_before_180_turn = strtof(ini["state_machine"]["distance_before_180_turn"].c_str(), nullptr);
 
-    const char *calib_wood = ini["edge"]["calibwood"].c_str();
+    const char *calib_wood_siren = ini["edge"]["calibwood_siren"].c_str();
     for (int i = 0; i < 8; i++)
     {
-        calibWood[i] = strtol(calib_wood, (char **)&calib_wood, 10);
+        calibWood_siren[i] = strtol(calib_wood_siren, (char **)&calib_wood_siren, 10);
+    }
+    const char *calib_wood_racetrack = ini["edge"]["calibwood_racetrack"].c_str();
+    for (int i = 0; i < 8; i++)
+    {
+        calibWood_racetrack[i] = strtol(calib_wood_racetrack, (char **)&calib_wood_racetrack, 10);
     }
 
     const char *calib_black = ini["edge"]["calibblack"].c_str();
@@ -334,10 +339,10 @@ void AStateMachine::run()
     to_chrono_states to_chrono_state = TO_CHRONO_FIRST_STRAIGHT;
 
     // Update here initial states if needed
-    // state = TO_CHRONO;
+    // state = DOORS;
     // enter_roundabout_state = ;
     // axe_state = ;
-    // door_state = ;
+    // door_state = DOOR_SECOND_DOOR;
     // to_chrono_state = ;
     //
 
@@ -773,14 +778,14 @@ void AStateMachine::run()
                         if (speed == 3)
                             cedge.maxTurnrate = to_chrono_turnrate;
                         followLine(FOLLOW_LEFT, 0.000000001, to_chrono_straight_speed / (4 - speed));
-                        usleep(ONE_SECOND / 2);
+                        usleep(ONE_SECOND / 1.5);
                     }
                     just_entered_new_state = false;
                 }
                 if (pose.dist > chrono_calib_change && !calibration_changed_chrono)
                 {
                     std::cout << "UPDATED CALIBRATION" << std::endl;
-                    medge.updateCalibrationBlack(calibWood);
+                    medge.updateCalibrationBlack(calibWood_racetrack);
                     calibration_changed_chrono = true;
                 }
                 if (pose.dist > chrono_distance_1)
@@ -881,14 +886,14 @@ void AStateMachine::run()
             {
                 std::cout << "To seesaw" << std::endl;
                 stopMovement();
-                medge.updateCalibrationBlack(calibWood);
+                medge.updateCalibrationBlack(calibWood_siren);
                 turnOnItself(M_PI - 0.03); // it goes to -3.13 before reading 3.14
                 stopMovement();
                 resetPose();
                 followLine(FOLLOW_RIGHT);
                 just_entered_new_state = false;
             }
-            if (detectIntersection() && (pose.dist > 4))
+            if (detectIntersection() && (pose.dist > 3))
             {
                 std::cout << "Arrived to 1rst intersection" << std::endl;
                 just_entered_new_state = true;
@@ -924,8 +929,9 @@ void AStateMachine::run()
 
             if ((pose.dist > seesaw_advance_dist) && detectIntersection())
             {
-                stopMovement();
                 std::cout << "Detected line" << std ::endl;
+                usleep(ONE_SECOND / 3);
+                stopMovement();
                 state = TO_SIREN;
                 resetPose();
                 intersection_detected = false;
@@ -938,7 +944,7 @@ void AStateMachine::run()
             {
                 std::cout << "To siren" << std::endl;
                 std::cout << "UPDATED CALIBRATION" << std::endl;
-                medge.updateCalibrationBlack(calibWood);
+                medge.updateCalibrationBlack(calibWood_siren);
                 turnOnItself(-M_PI / 2 + M_PI / 9);
 
                 resetPose();
@@ -954,7 +960,7 @@ void AStateMachine::run()
                 stopMovement();
                 mixer.setVelocity(follow_line_speed);
                 // std::cout << "GO_TO_LINE" << std::endl;
-                usleep(ONE_SECOND / 2);
+                usleep(ONE_SECOND);
             }
             else if (detectIntersection() && (first_intersection))
             {

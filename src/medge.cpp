@@ -215,7 +215,7 @@ void MEdge::run()
   int loop = 0;
   while (not service.stop)
   {
-    if ((sensorCalibrateWhite or sensorCalibrateBlack) and
+    if ((sensorCalibrateWhite or sensorCalibrateBlack or sensorCalibrateRacetrackWood or sensorCalibrateSirenWood) and
         sedge.updateCnt > 100)
     { // start summing calibration values
       if (sensorCalibrateCount == 0)
@@ -231,7 +231,7 @@ void MEdge::run()
       lineUpdateCnt = sedge.updateCnt;
       loop++;
       // calculate edge position
-      if (not(sensorCalibrateWhite or sensorCalibrateBlack))
+      if (not(sensorCalibrateWhite or sensorCalibrateBlack or sensorCalibrateRacetrackWood or sensorCalibrateSirenWood))
       { // regular update
         findEdge();
         // inform users of update
@@ -271,11 +271,23 @@ void MEdge::run()
             printf("# New calibration values:\n# white %s\n", s);
             ini["edge"]["calibWhite"] = s;
           }
-          else
+          else if (sensorCalibrateBlack)
           { // save average as black value
             sensorCalibrateBlack = false;
             ini["edge"]["calibBlack"] = s;
             printf("# New calibration values:\n# black %s\n", s);
+          }
+          else if (sensorCalibrateRacetrackWood)
+          {
+            sensorCalibrateRacetrackWood = false;
+            ini["edge"]["calibwood_racetrack"] = s;
+            printf("# New calibration values:\n# racetrack wood %s\n", s);
+          }
+          else
+          {
+            sensorCalibrateSirenWood = false;
+            ini["edge"]["calibwood_siren"] = s;
+            printf("# New calibration values:\n# siren wood %s\n", s);
           }
         }
       }

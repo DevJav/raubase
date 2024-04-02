@@ -71,6 +71,8 @@ public:
   // flag for doing a white line sensor calibration
   bool sensorCalibrateWhite = false;
   bool sensorCalibrateBlack = false;
+  bool sensorCalibrateRacetrackWood = false;
+  bool sensorCalibrateSirenWood = false;
 
 private:
   /// private stuff
