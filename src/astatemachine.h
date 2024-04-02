@@ -47,7 +47,6 @@ public:
     bool detectIntersection();
     void followLine(bool move_right, float margin, float speed);
     void turnOnItself(float target_angle);
-    void turnHeading(float target_angle);
     void stopMovement(int wait_time);
     void resetPose();
 
@@ -110,8 +109,9 @@ private:
     int edge_counter{0};
     int seesaw_counter{0};
     float seesaw_advance_dist;
+    float seesaw_avoid_wood_as_intersection_distance;
 
-    //siren
+    // siren
     float siren_advance_dist;
     float dist_to_siren;
 
